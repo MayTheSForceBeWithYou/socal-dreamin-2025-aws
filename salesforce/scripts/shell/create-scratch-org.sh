@@ -1,0 +1,1 @@
+sf org create scratch -f config/project-scratch-def.json -a socal-dreamin-2025-aws -d

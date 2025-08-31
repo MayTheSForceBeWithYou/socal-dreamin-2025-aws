@@ -1,0 +1,1 @@
+sf data query --file scripts/soql/LoginHistory.soql --result-format csv > data/LoginHistory.csv

@@ -1,0 +1,13 @@
+# IDE Settings
+.vscode
+
+# Salesforce CLI
+.sfdx
+.sf
+
+# Terraform
+.terraform.lock.hcl
+**/.terraform
+**/*.tfstate
+**/*.tfstate.backup
+**/*.tfvars
