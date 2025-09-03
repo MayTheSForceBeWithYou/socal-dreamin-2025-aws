@@ -1,0 +1,9 @@
+# Copy to terraform.tfvars and edit values before terraform init/apply
+
+region        = "us-west-1"
+bucket_prefix = "socal-dreamin-2025-aws-login-history-data"
+environment   = "lab"
+
+# Set to your tag (all lowercase, numbers and hyphens OK)
+# examples: "jdoe", "astro", "a-perez"
+owner_suffix  = "yourinitialslastname"

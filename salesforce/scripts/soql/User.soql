@@ -1,0 +1,1 @@
+SELECT FIELDS(ALL) FROM User WHERE IsActive = true ORDER BY LastLoginDate DESC LIMIT 100

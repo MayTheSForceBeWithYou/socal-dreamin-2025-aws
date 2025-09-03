@@ -1,1 +1,1 @@
-sf org create scratch -f config/project-scratch-def.json -a socal-dreamin-2025-aws -d
+sf org create scratch --definition-file config/project-scratch-def.json --alias socal-dreamin-2025-aws --set-default
