@@ -4,8 +4,8 @@
     <label>AWS Lambda PubSub App</label>
     <oauthConfig>
         <callbackUrl>http://localhost</callbackUrl>
-        <!--certificate>YOUR_CERTIFICATE</certificate-->
-        <!--consumerKey>YOUR_CONSUMER_KEY</consumerKey-->
+        <certificate>FROM_salesforce/certs/aws-to-sf-cert_WITHOUT_BEGIN_OR_END_LINES</certificate>
+        <!--consumerKey>RETRIEVED_FROM_SALESFORCE</consumerKey-->
         <isAdminApproved>false</isAdminApproved>
         <isClientCredentialEnabled>false</isClientCredentialEnabled>
         <isCodeCredentialEnabled>false</isCodeCredentialEnabled>
