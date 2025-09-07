@@ -9,7 +9,7 @@
     "EmailEncodingKey": "UTF-8",
     "LanguageLocaleKey": "en_US",
     "ProfileName": "Minimum Access - API Only Integrations",
-    "permset": [
+    "permsets": [
         "Real_Time_Event_Monitoring_Integration"
     ]
 }  
