@@ -7,7 +7,7 @@ from typing import Dict, Any, Optional
 from rich.console import Console
 from rich.panel import Panel
 
-from ...commands.base import BaseCommand, register_command
+from ...commands.base import BaseCommand, register_command, CommandFactory
 from ...core.exceptions import SalesforceError, ValidationError
 from ...utils.validators import Validators
 
@@ -53,7 +53,7 @@ class SetupCompleteSalesforceCommand(BaseCommand):
             
             # Step 1: Generate certificate
             self.console.print("\n[bold]Step 1: Generating Salesforce certificate...[/bold]")
-            cert_command = self.command_factory.create_command(
+            cert_command = CommandFactory.create_command(
                 'salesforce:generate-certificate',
                 self.config,
                 dry_run=self.dry_run,
@@ -65,7 +65,7 @@ class SetupCompleteSalesforceCommand(BaseCommand):
             # Step 2: Create scratch org
             self.console.print("\n[bold]Step 2: Creating Salesforce scratch org...[/bold]")
             org_name = f"socal-dreamin-2025-aws-{environment}"
-            org_command = self.command_factory.create_command(
+            org_command = CommandFactory.create_command(
                 'salesforce:create-scratch-org',
                 self.config,
                 dry_run=self.dry_run,
@@ -76,7 +76,7 @@ class SetupCompleteSalesforceCommand(BaseCommand):
             
             # Step 3: Setup Connected App
             self.console.print("\n[bold]Step 3: Setting up Connected App...[/bold]")
-            app_command = self.command_factory.create_command(
+            app_command = CommandFactory.create_command(
                 'salesforce:setup-connected-app',
                 self.config,
                 dry_run=self.dry_run,
@@ -87,7 +87,7 @@ class SetupCompleteSalesforceCommand(BaseCommand):
             
             # Step 4: Create integration user
             self.console.print("\n[bold]Step 4: Creating integration user...[/bold]")
-            user_command = self.command_factory.create_command(
+            user_command = CommandFactory.create_command(
                 'salesforce:create-integration-user',
                 self.config,
                 dry_run=self.dry_run,

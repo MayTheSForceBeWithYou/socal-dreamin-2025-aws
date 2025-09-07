@@ -16,6 +16,8 @@ from .commands.salesforce.create_scratch_org import CreateScratchOrgCommand
 from .commands.salesforce.generate_certificate import GenerateSalesforceCertificateCommand
 from .commands.salesforce.query_login_history import QueryLoginHistoryCommand
 from .commands.salesforce.create_integration_user import CreateIntegrationUserCommand
+from .commands.salesforce.setup_complete import SetupCompleteSalesforceCommand
+from .commands.salesforce.setup_connected_app import SetupConnectedAppCommand
 from .commands.aws.generate_certificate import GenerateAWSCertificateCommand
 from .commands.infrastructure.deploy_complete_lab import deploy_complete_lab
 from .commands.infrastructure.setup_terraform_vars import setup_terraform_vars
