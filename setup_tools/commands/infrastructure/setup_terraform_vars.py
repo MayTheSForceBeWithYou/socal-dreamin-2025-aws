@@ -6,6 +6,7 @@ Creates terraform.tfvars file from template with user input
 
 import os
 import sys
+import re
 from pathlib import Path
 from typing import Optional
 import click
@@ -102,43 +103,38 @@ class TerraformVarsSetup:
             
             # Salesforce Configuration
             console.print("\n[yellow]Salesforce Configuration:[/yellow]")
+            console.print("Please provide Salesforce information. If you haven't set up Salesforce yet,")
+            console.print("run: python -m setup_tools.main salesforce setup-complete --contact-email your-email@example.com")
             
-            # Get contact email for Connected App
-            contact_email = Prompt.ask(
-                "Contact Email for Salesforce Connected App", 
-                default="your-email@example.com",
+            # Get Salesforce instance URL
+            salesforce_instance_url = Prompt.ask(
+                "Salesforce Instance URL", 
+                default="https://your-instance.salesforce.com",
                 show_default=True
             )
             
-            # Check if Salesforce scratch org already exists
-            salesforce_instance_url = self._get_salesforce_instance_url(environment)
+            # Get Salesforce client ID (Consumer Key)
+            salesforce_client_id = Prompt.ask(
+                "Salesforce Connected App Consumer Key", 
+                default="your-connected-app-consumer-key",
+                show_default=True
+            )
             
-            if not salesforce_instance_url:
-                console.print("No Salesforce scratch org found. Let's create one...")
-                if Confirm.ask("Create Salesforce scratch org?"):
-                    salesforce_instance_url = self._create_salesforce_org(environment)
-                    if not salesforce_instance_url:
-                        console.print("[red]❌ Failed to create Salesforce scratch org[/red]")
-                        return False
-                else:
-                    salesforce_instance_url = Prompt.ask(
-                        "Salesforce Instance URL", 
-                        default="https://your-instance.salesforce.com",
-                        show_default=True
-                    )
-            
-            # Set up Connected App and get Consumer Key
-            console.print("Setting up Salesforce Connected App...")
-            salesforce_client_id = self._setup_connected_app(environment, contact_email)
-            if not salesforce_client_id:
-                console.print("[red]❌ Failed to setup Connected App[/red]")
-                return False
-            
+            # Get Salesforce username
             salesforce_username = Prompt.ask(
                 "Salesforce Username", 
                 default="your-salesforce-username@your-domain.com",
                 show_default=True
             )
+            
+            # Get Salesforce private key
+            salesforce_private_key = self._get_salesforce_private_key()
+            if not salesforce_private_key:
+                console.print("[yellow]⚠️  Salesforce private key not found. You may need to run certificate generation.[/yellow]")
+                salesforce_private_key = Prompt.ask(
+                    "Salesforce Private Key (paste your private key here)",
+                    default="-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC...\n-----END PRIVATE KEY-----"
+                )
             
             # Replace template variables
             tfvars_content = template_content.replace("us-west-1", aws_region)
@@ -148,6 +144,11 @@ class TerraformVarsSetup:
             tfvars_content = tfvars_content.replace("https://your-instance.salesforce.com", salesforce_instance_url)
             tfvars_content = tfvars_content.replace("your-connected-app-consumer-key", salesforce_client_id)
             tfvars_content = tfvars_content.replace("your-salesforce-username@your-domain.com", salesforce_username)
+            
+            # Replace the private key placeholder with actual content
+            private_key_pattern = r'salesforce_private_key = """\s*\n-----BEGIN PRIVATE KEY-----\s*\n.*?\n-----END PRIVATE KEY-----\s*\n"""'
+            private_key_replacement = f'salesforce_private_key = """\n{salesforce_private_key}\n"""'
+            tfvars_content = re.sub(private_key_pattern, private_key_replacement, tfvars_content, flags=re.DOTALL)
             
             # Write tfvars file
             with open(self.tfvars_file, 'w') as f:
@@ -160,7 +161,8 @@ class TerraformVarsSetup:
                 "Next Steps:\n"
                 "1. Edit aws/sfdc-auth-secrets.json with your Salesforce credentials\n"
                 "2. Run: python -m setup_tools.main infrastructure deploy-complete-lab --environment demo --validate\n"
-                "3. The deployment will create all AWS resources",
+                "3. The deployment will create all AWS resources\n"
+                "4. Note: Salesforce private key has been automatically populated in terraform.tfvars",
                 title="📋 Next Steps",
                 border_style="green"
             ))
@@ -228,219 +230,21 @@ class TerraformVarsSetup:
             console.print(f"[red]❌ Failed to generate SSH keypair: {e}[/red]")
             return None
     
-    def _get_salesforce_instance_url(self, environment: str) -> Optional[str]:
-        """Get Salesforce instance URL from existing scratch org."""
+    def _get_salesforce_private_key(self) -> Optional[str]:
+        """Read the Salesforce private key content."""
         try:
-            import subprocess
-            import json
+            private_key_path = self.project_root / "salesforce" / "certs" / "aws-to-sf-cert.key"
             
-            salesforce_dir = self.project_root / "salesforce"
-            if not salesforce_dir.exists():
+            if not private_key_path.exists():
                 return None
             
-            # Try to get org info for the default org
-            result = subprocess.run([
-                "sf", "org", "display", "--json"
-            ], cwd=salesforce_dir, capture_output=True, text=True)
+            with open(private_key_path, 'r') as f:
+                private_key_content = f.read().strip()
             
-            if result.returncode == 0:
-                org_data = json.loads(result.stdout)
-                instance_url = org_data.get('result', {}).get('instanceUrl')
-                if instance_url:
-                    console.print(f"[green]✅ Found existing Salesforce org: {instance_url}[/green]")
-                    return instance_url
-            
-            return None
+            return private_key_content
             
         except Exception as e:
-            console.print(f"[yellow]⚠️  Could not check for existing Salesforce org: {e}[/yellow]")
-            return None
-    
-    def _create_salesforce_org(self, environment: str) -> Optional[str]:
-        """Create Salesforce scratch org and return instance URL."""
-        try:
-            import subprocess
-            import json
-            
-            salesforce_dir = self.project_root / "salesforce"
-            if not salesforce_dir.exists():
-                console.print("[red]❌ Salesforce directory not found[/red]")
-                return None
-            
-            # Check if sf CLI is available
-            result = subprocess.run(["sf", "--version"], capture_output=True, text=True)
-            if result.returncode != 0:
-                console.print("[red]❌ Salesforce CLI (sf) not found. Please install it first.[/red]")
-                return None
-            
-            org_name = f"socal-dreamin-2025-aws-{environment}"
-            
-            console.print(f"Creating Salesforce scratch org: {org_name}")
-            console.print("[yellow]This may take a few minutes...[/yellow]")
-            
-            # Create scratch org - pass through output so user can see progress
-            result = subprocess.run([
-                "sf", "org", "create", "scratch",
-                "--definition-file", "config/project-scratch-def.json",
-                "--alias", org_name,
-                "--set-default",
-                "--duration-days", "30"
-            ], cwd=salesforce_dir)
-            
-            if result.returncode != 0:
-                console.print("[red]❌ Failed to create scratch org. Check the output above for details.[/red]")
-                return None
-            
-            # Get org info
-            result = subprocess.run([
-                "sf", "org", "display", "--json"
-            ], cwd=salesforce_dir, capture_output=True, text=True)
-            
-            if result.returncode == 0:
-                org_data = json.loads(result.stdout)
-                instance_url = org_data.get('result', {}).get('instanceUrl')
-                if instance_url:
-                    console.print(f"[green]✅ Created Salesforce scratch org: {instance_url}[/green]")
-                    return instance_url
-            
-            console.print("[red]❌ Failed to get org instance URL[/red]")
-            return None
-            
-        except Exception as e:
-            console.print(f"[red]❌ Failed to create Salesforce org: {e}[/red]")
-            return None
-    
-    def _setup_connected_app(self, environment: str, contact_email: str) -> Optional[str]:
-        """Set up Salesforce Connected App and return Consumer Key."""
-        try:
-            import subprocess
-            import json
-            
-            salesforce_dir = self.project_root / "salesforce"
-            if not salesforce_dir.exists():
-                console.print("[red]❌ Salesforce directory not found[/red]")
-                return None
-            
-            # Check if certificate exists
-            cert_path = self.project_root / "salesforce" / "certs" / "aws-to-sf-cert.crt"
-            if not cert_path.exists():
-                console.print("[red]❌ Salesforce certificate not found. Run 'python -m setup_tools.main salesforce generate-certificate' first.[/red]")
-                return None
-            
-            # Read certificate content
-            with open(cert_path, 'r') as f:
-                cert_content = f.read()
-            
-            # Remove BEGIN/END lines and concatenate
-            cert_lines = cert_content.strip().split('\n')
-            cert_body = ''.join([line.strip() for line in cert_lines 
-                               if not line.startswith('-----BEGIN') and not line.startswith('-----END')])
-            
-            # Update Connected App XML
-            connected_app_path = salesforce_dir / "force-app" / "main" / "default" / "connectedApps" / "AWS_Lambda_PubSub_App.connectedApp-meta.xml"
-            if not connected_app_path.exists():
-                console.print("[red]❌ Connected App XML not found[/red]")
-                return None
-            
-            # Read and update XML
-            with open(connected_app_path, 'r') as f:
-                xml_content = f.read()
-            
-            # Replace contact email and certificate
-            xml_content = xml_content.replace('replace@with.your.email', contact_email)
-            xml_content = xml_content.replace('FROM_salesforce/certs/aws-to-sf-cert_WITHOUT_BEGIN_OR_END_LINES', cert_body)
-            
-            # Write updated XML
-            with open(connected_app_path, 'w') as f:
-                f.write(xml_content)
-            
-            console.print("Deploying Connected App to Salesforce...")
-            
-            # Deploy the Connected App
-            result = subprocess.run([
-                "sf", "project", "deploy", "start",
-                "--source-dir", "force-app/main/default/connectedApps",
-                "--target-org", f"socal-dreamin-2025-aws-{environment}"
-            ], cwd=salesforce_dir, capture_output=True, text=True)
-            
-            if result.returncode != 0:
-                console.print(f"[red]❌ Failed to deploy Connected App: {result.stderr}[/red]")
-                return None
-            
-            console.print("Retrieving Connected App Consumer Key...")
-            
-            # Retrieve the Connected App directly
-            result = subprocess.run([
-                "sf", "project", "retrieve", "start",
-                "--source-dir", connected_app_path,
-                "--target-org", f"socal-dreamin-2025-aws-{environment}",
-                "--json"
-            ], cwd=salesforce_dir, capture_output=True, text=True)
-            
-            if result.returncode != 0:
-                console.print(f"[red]❌ Failed to retrieve Connected App: {result.stderr}[/red]")
-                return None
-            
-            # Parse the retrieve result to find our Connected App
-            try:
-                retrieve_result = json.loads(result.stdout)
-                
-                # The retrieve command returns different structure than list metadata
-                # Check if the retrieve was successful
-                if retrieve_result.get('status') == 0:
-                    console.print("[green]✅ Successfully retrieved Connected App metadata[/green]")
-                    
-                    # Try to read the retrieved XML file to get Consumer Key
-                    retrieved_xml_path = salesforce_dir / "force-app" / "main" / "default" / "connectedApps" / "AWS_Lambda_PubSub_App.connectedApp-meta.xml"
-                    
-                    if retrieved_xml_path.exists():
-                        import xml.etree.ElementTree as ET
-                        
-                        # Parse the retrieved XML
-                        tree = ET.parse(retrieved_xml_path)
-                        root = tree.getroot()
-                        
-                        # Look for consumerKey in the XML
-                        consumer_key_elem = root.find('.//consumerKey')
-                        if consumer_key_elem is not None and consumer_key_elem.text:
-                            consumer_key = consumer_key_elem.text.strip()
-                            console.print(f"[green]✅ Connected App Consumer Key: {consumer_key}[/green]")
-                            return consumer_key
-                        else:
-                            console.print("[yellow]⚠️  Consumer Key not found in retrieved XML. Trying alternative approach...[/yellow]")
-                    
-                    # If not found in XML, try SOQL query as fallback
-                    console.print("[yellow]⚠️  Trying SOQL query to get Consumer Key...[/yellow]")
-                    
-                    soql_result = subprocess.run([
-                        "sf", "data", "query",
-                        "--query", "SELECT Id, Name, ConsumerKey FROM ConnectedApplication WHERE Name = 'AWS Lambda PubSub App'",
-                        "--target-org", f"socal-dreamin-2025-aws-{environment}",
-                        "--json"
-                    ], cwd=salesforce_dir, capture_output=True, text=True)
-                    
-                    if soql_result.returncode == 0:
-                        soql_data = json.loads(soql_result.stdout)
-                        records = soql_data.get('result', {}).get('records', [])
-                        if records:
-                            consumer_key = records[0].get('ConsumerKey')
-                            if consumer_key:
-                                console.print(f"[green]✅ Connected App Consumer Key: {consumer_key}[/green]")
-                                return consumer_key
-                    
-                    console.print("[red]❌ Could not find Consumer Key in retrieved metadata or SOQL query.[/red]")
-                    return None
-                    
-                else:
-                    console.print(f"[red]❌ Retrieve command failed: {retrieve_result.get('message', 'Unknown error')}[/red]")
-                    return None
-                
-            except json.JSONDecodeError as e:
-                console.print(f"[red]❌ Failed to parse Connected App metadata: {e}[/red]")
-                return None
-            
-        except Exception as e:
-            console.print(f"[red]❌ Failed to setup Connected App: {e}[/red]")
+            console.print(f"[yellow]⚠️  Failed to read Salesforce private key: {e}[/yellow]")
             return None
 
 

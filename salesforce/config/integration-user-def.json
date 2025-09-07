@@ -10,7 +10,6 @@
     "LanguageLocaleKey": "en_US",
     "ProfileName": "Minimum Access - API Only Integrations",
     "permset": [
-        "Real_Time_Event_Monitoring_Admin"
+        "Real_Time_Event_Monitoring_Integration"
     ]
-}
-  
+}  

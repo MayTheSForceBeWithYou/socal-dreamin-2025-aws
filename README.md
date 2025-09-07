@@ -108,26 +108,21 @@ cd socal-dreamin-2025-aws
    pip install -r requirements.txt
    ```
 
-3. **Set up prerequisites (run these commands first):**
+3. **Complete Salesforce setup (one command):**
    ```bash
-   # Generate AWS SSH keypair
-   python -m setup_tools.main aws generate-certificate --key-name aws-ec2
-   
-   # Generate Salesforce certificate
-   python -m setup_tools.main salesforce generate-certificate
-   
-   # Create Terraform variables file (this will also create Salesforce scratch org and Connected App)
+   # This will create scratch org, certificates, Connected App, and integration user
+   python -m setup_tools.main salesforce setup-complete --contact-email your-email@example.com --environment demo
+   ```
+
+4. **Set up Terraform variables:**
+   ```bash
+   # This will prompt for AWS configuration and populate terraform.tfvars
    python -m setup_tools.main infrastructure setup-terraform-vars --environment demo
    ```
 
-4. **Configure Salesforce credentials:**
+5. **Configure Salesforce credentials:**
    - Copy `aws/sfdc-auth-secrets.json.example` to `aws/sfdc-auth-secrets.json`
    - Edit the file with your Salesforce Connected App credentials
-   - The setup process will automatically:
-     - Create a Salesforce scratch org
-     - Update the Connected App with your email and certificate
-     - Deploy the Connected App to Salesforce
-     - Retrieve the Consumer Key automatically
 
 ### 🎯 Master Setup Command
 
@@ -158,10 +153,18 @@ python -m setup_tools services start-dashboard-proxy
 python -m setup_tools validation validate-lab --comprehensive
 python -m setup_tools validation generate-test-data --count 200
 
-# Salesforce Operations
-python -m setup_tools salesforce create-scratch-org
+# Salesforce Operations (Complete Setup)
+python -m setup_tools salesforce setup-complete --contact-email your-email@example.com
+
+# Salesforce Operations (Individual)
+python -m setup_tools salesforce create-scratch-org --org-name demo --duration-days 30
 python -m setup_tools salesforce generate-certificate
-python -m setup_tools salesforce create-integration-user
+python -m setup_tools salesforce setup-connected-app --contact-email your-email@example.com
+python -m setup_tools salesforce create-integration-user --contact-email your-email@example.com
+
+# Infrastructure Management
+python -m setup_tools infrastructure setup-terraform-vars --environment demo
+python -m setup_tools infrastructure deploy-complete-lab --validate
 ```
 
 ### 📊 Dashboard Access Methods

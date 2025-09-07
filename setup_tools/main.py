@@ -215,6 +215,58 @@ def salesforce_create_integration_user(ctx, contact_email):
         raise click.Abort()
 
 
+@salesforce.command('setup-connected-app')
+@click.option('--contact-email', help='Contact email for the Connected App')
+@click.option('--environment', default='demo', help='Environment name for org targeting')
+@click.pass_context
+def salesforce_setup_connected_app(ctx, contact_email, environment):
+    """Set up Salesforce Connected App and retrieve Consumer Key."""
+    try:
+        command = CommandFactory.create_command(
+            'salesforce:setup-connected-app',
+            ctx.obj['config'],
+            dry_run=ctx.obj['dry_run'],
+            verbose=ctx.obj['verbose']
+        )
+        
+        result = command.execute(contact_email=contact_email, environment=environment)
+        
+        if result['success']:
+            console.print("[green]✅ Connected App setup completed successfully![/green]")
+        else:
+            console.print("[red]❌ Failed to setup Connected App[/red]")
+            
+    except Exception as e:
+        console.print(f"[red]Error: {e}[/red]")
+        raise click.Abort()
+
+
+@salesforce.command('setup-complete')
+@click.option('--contact-email', help='Contact email for Salesforce components')
+@click.option('--environment', default='demo', help='Environment name')
+@click.pass_context
+def salesforce_setup_complete(ctx, contact_email, environment):
+    """Complete Salesforce setup including scratch org, certificates, Connected App, and integration user."""
+    try:
+        command = CommandFactory.create_command(
+            'salesforce:setup-complete',
+            ctx.obj['config'],
+            dry_run=ctx.obj['dry_run'],
+            verbose=ctx.obj['verbose']
+        )
+        
+        result = command.execute(contact_email=contact_email, environment=environment)
+        
+        if result['success']:
+            console.print("[green]✅ Complete Salesforce setup finished successfully![/green]")
+        else:
+            console.print("[red]❌ Failed to complete Salesforce setup[/red]")
+            
+    except Exception as e:
+        console.print(f"[red]Error: {e}[/red]")
+        raise click.Abort()
+
+
 @salesforce.command('query-login-history')
 @click.pass_context
 def salesforce_query_login_history(ctx):

@@ -57,16 +57,68 @@ python -m setup_tools list-commands
 python -m setup_tools command-info salesforce:create-scratch-org
 
 # Salesforce operations
+python -m setup_tools salesforce setup-complete --contact-email your-email@example.com --environment demo
 python -m setup_tools salesforce create-scratch-org --org-name demo --duration-days 7
 python -m setup_tools salesforce generate-certificate
+python -m setup_tools salesforce setup-connected-app --contact-email your-email@example.com
+python -m setup_tools salesforce create-integration-user --contact-email your-email@example.com
 python -m setup_tools salesforce query-login-history
 
 # AWS operations
 python -m setup_tools aws generate-certificate --key-name my-key
 
-# Run all operations
-python -m setup_tools run-all --environment demo
+# Infrastructure operations
+python -m setup_tools infrastructure setup-terraform-vars --environment demo
+python -m setup_tools infrastructure deploy-complete-lab --environment demo --validate
 ```
+
+### Recommended Workflow
+
+For a complete setup, follow this sequence:
+
+1. **Complete Salesforce Setup** (one command):
+   ```bash
+   python -m setup_tools salesforce setup-complete --contact-email your-email@example.com --environment demo
+   ```
+
+2. **Setup Terraform Variables**:
+   ```bash
+   python -m setup_tools infrastructure setup-terraform-vars --environment demo
+   ```
+
+3. **Deploy Infrastructure**:
+   ```bash
+   python -m setup_tools infrastructure deploy-complete-lab --environment demo --validate
+   ```
+
+### Individual Commands
+
+If you prefer to run commands individually:
+
+1. **Generate Salesforce Certificate**:
+   ```bash
+   python -m setup_tools salesforce generate-certificate
+   ```
+
+2. **Create Scratch Org**:
+   ```bash
+   python -m setup_tools salesforce create-scratch-org --org-name demo --duration-days 30
+   ```
+
+3. **Setup Connected App**:
+   ```bash
+   python -m setup_tools salesforce setup-connected-app --contact-email your-email@example.com
+   ```
+
+4. **Create Integration User**:
+   ```bash
+   python -m setup_tools salesforce create-integration-user --contact-email your-email@example.com
+   ```
+
+5. **Setup Terraform Variables**:
+   ```bash
+   python -m setup_tools infrastructure setup-terraform-vars --environment demo
+   ```
 
 ### Configuration
 
@@ -121,12 +173,23 @@ aws:
 
 #### Salesforce Commands
 
+**setup-complete**
+- `--contact-email`: Contact email for Salesforce components
+- `--environment`: Environment name (default: demo)
+
 **create-scratch-org**
 - `--org-name`: Name for the scratch org
 - `--duration-days`: Duration in days (1-30)
 
 **generate-certificate**
 - No additional options
+
+**setup-connected-app**
+- `--contact-email`: Contact email for the Connected App
+- `--environment`: Environment name for org targeting
+
+**create-integration-user**
+- `--contact-email`: Contact email for the integration user
 
 **query-login-history**
 - No additional options
@@ -135,6 +198,15 @@ aws:
 
 **generate-certificate**
 - `--key-name`: Name for the SSH key
+
+#### Infrastructure Commands
+
+**setup-terraform-vars**
+- `--environment`: Environment name (default: demo)
+
+**deploy-complete-lab**
+- `--environment`: Environment name (default: demo)
+- `--validate`: Validate configuration before deployment
 
 ## Architecture
 
