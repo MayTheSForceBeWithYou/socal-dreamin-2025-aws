@@ -381,74 +381,59 @@ class TerraformVarsSetup:
                 console.print(f"[red]❌ Failed to retrieve Connected App: {result.stderr}[/red]")
                 return None
             
-            # Parse the result to find our Connected App
+            # Parse the retrieve result to find our Connected App
             try:
-                metadata_result = json.loads(result.stdout)
-                connected_apps = metadata_result.get('result', [])
+                retrieve_result = json.loads(result.stdout)
                 
-                # Look for our Connected App
-                for app in connected_apps:
-                    if app.get('fullName') == 'AWS_Lambda_PubSub_App':
-                        console.print(f"[green]✅ Found Connected App: {app.get('fullName')}[/green]")
+                # The retrieve command returns different structure than list metadata
+                # Check if the retrieve was successful
+                if retrieve_result.get('status') == 0:
+                    console.print("[green]✅ Successfully retrieved Connected App metadata[/green]")
+                    
+                    # Try to read the retrieved XML file to get Consumer Key
+                    retrieved_xml_path = salesforce_dir / "force-app" / "main" / "default" / "connectedApps" / "AWS_Lambda_PubSub_App.connectedApp-meta.xml"
+                    
+                    if retrieved_xml_path.exists():
+                        import xml.etree.ElementTree as ET
                         
-                        # Try to get the Consumer Key using a different method
-                        # The Consumer Key might be available in the org display
-                        org_result = subprocess.run([
-                            "sf", "org", "display",
-                            "--target-org", f"socal-dreamin-2025-aws-{environment}",
-                            "--json"
-                        ], cwd=salesforce_dir, capture_output=True, text=True)
+                        # Parse the retrieved XML
+                        tree = ET.parse(retrieved_xml_path)
+                        root = tree.getroot()
                         
-                        if org_result.returncode == 0:
-                            org_data = json.loads(org_result.stdout)
-                            # Check if Consumer Key is in org info
-                            consumer_key = org_data.get('result', {}).get('consumerKey')
+                        # Look for consumerKey in the XML
+                        consumer_key_elem = root.find('.//consumerKey')
+                        if consumer_key_elem is not None and consumer_key_elem.text:
+                            consumer_key = consumer_key_elem.text.strip()
+                            console.print(f"[green]✅ Connected App Consumer Key: {consumer_key}[/green]")
+                            return consumer_key
+                        else:
+                            console.print("[yellow]⚠️  Consumer Key not found in retrieved XML. Trying alternative approach...[/yellow]")
+                    
+                    # If not found in XML, try SOQL query as fallback
+                    console.print("[yellow]⚠️  Trying SOQL query to get Consumer Key...[/yellow]")
+                    
+                    soql_result = subprocess.run([
+                        "sf", "data", "query",
+                        "--query", "SELECT Id, Name, ConsumerKey FROM ConnectedApplication WHERE Name = 'AWS Lambda PubSub App'",
+                        "--target-org", f"socal-dreamin-2025-aws-{environment}",
+                        "--json"
+                    ], cwd=salesforce_dir, capture_output=True, text=True)
+                    
+                    if soql_result.returncode == 0:
+                        soql_data = json.loads(soql_result.stdout)
+                        records = soql_data.get('result', {}).get('records', [])
+                        if records:
+                            consumer_key = records[0].get('ConsumerKey')
                             if consumer_key:
                                 console.print(f"[green]✅ Connected App Consumer Key: {consumer_key}[/green]")
                                 return consumer_key
-                        
-                        # If not found in org display, try to retrieve the Connected App details
-                        # using the org list metadata with specific name
-                        detail_result = subprocess.run([
-                            "sf", "org", "list", "metadata",
-                            "--metadata-type", "ConnectedApp",
-                            "--target-org", f"socal-dreamin-2025-aws-{environment}",
-                            "--json"
-                        ], cwd=salesforce_dir, capture_output=True, text=True)
-                        
-                        if detail_result.returncode == 0:
-                            detail_data = json.loads(detail_result.stdout)
-                            # Look for Consumer Key in the detailed result
-                            apps = detail_data.get('result', [])
-                            for app_detail in apps:
-                                if app_detail.get('fullName') == 'AWS_Lambda_PubSub_App':
-                                    consumer_key = app_detail.get('consumerKey')
-                                    if consumer_key:
-                                        console.print(f"[green]✅ Connected App Consumer Key: {consumer_key}[/green]")
-                                        return consumer_key
-                
-                # If we still haven't found it, try a manual approach
-                console.print("[yellow]⚠️  Consumer Key not found in metadata. Trying alternative approach...[/yellow]")
-                
-                # Try to query the Connected App using SOQL
-                soql_result = subprocess.run([
-                    "sf", "data", "query",
-                    "--query", "SELECT Id, Name, ConsumerKey FROM ConnectedApplication WHERE Name = 'AWS Lambda PubSub App'",
-                    "--target-org", f"socal-dreamin-2025-aws-{environment}",
-                    "--json"
-                ], cwd=salesforce_dir, capture_output=True, text=True)
-                
-                if soql_result.returncode == 0:
-                    soql_data = json.loads(soql_result.stdout)
-                    records = soql_data.get('result', {}).get('records', [])
-                    if records:
-                        consumer_key = records[0].get('ConsumerKey')
-                        if consumer_key:
-                            console.print(f"[green]✅ Connected App Consumer Key: {consumer_key}[/green]")
-                            return consumer_key
-                
-                console.print("[red]❌ Could not find Consumer Key. You may need to check the Connected App manually in Salesforce Setup.[/red]")
-                return None
+                    
+                    console.print("[red]❌ Could not find Consumer Key in retrieved metadata or SOQL query.[/red]")
+                    return None
+                    
+                else:
+                    console.print(f"[red]❌ Retrieve command failed: {retrieve_result.get('message', 'Unknown error')}[/red]")
+                    return None
                 
             except json.JSONDecodeError as e:
                 console.print(f"[red]❌ Failed to parse Connected App metadata: {e}[/red]")
