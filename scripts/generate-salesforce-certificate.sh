@@ -4,7 +4,7 @@
 set -e
 
 # Paths
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 echo "ROOT_DIR: $ROOT_DIR"
 
 # Generate the digital certificate

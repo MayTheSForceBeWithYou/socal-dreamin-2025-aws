@@ -1,37 +1,84 @@
-variable "region" {
-  description = "AWS region for resources"
+variable "aws_region" {
+  description = "AWS region"
+  type        = string
+  default     = "us-east-1"
+}
+
+variable "project_name" {
+  description = "Project name"
+  type        = string
+  default     = "salesforce-opensearch-lab"
+}
+
+variable "owner" {
+  description = "Owner tag"
+  type        = string
+  default     = "lab-user"
+}
+
+variable "vpc_cidr" {
+  description = "VPC CIDR block"
+  type        = string
+  default     = "10.0.0.0/16"
+}
+
+variable "ssh_public_key" {
+  description = "SSH public key for EC2 access"
   type        = string
 }
 
-variable "bucket_prefix" {
-  description = "Shared, lowercase, DNS-safe prefix"
+# OpenSearch
+variable "opensearch_instance_type" {
+  description = "OpenSearch instance type"
+  type        = string
+  default     = "t3.small.search"
+}
+
+variable "opensearch_instance_count" {
+  description = "Number of OpenSearch instances"
+  type        = number
+  default     = 1
+}
+
+variable "opensearch_ebs_volume_size" {
+  description = "OpenSearch EBS volume size (GB)"
+  type        = number
+  default     = 20
+}
+
+# EC2
+variable "ec2_instance_type" {
+  description = "EC2 instance type"
+  type        = string
+  default     = "t3.micro"
+}
+
+variable "poll_interval_seconds" {
+  description = "Polling interval for Salesforce events"
+  type        = number
+  default     = 60
+}
+
+# Salesforce JWT
+variable "salesforce_instance_url" {
+  description = "Salesforce instance URL"
   type        = string
 }
 
-variable "environment" {
-  description = "Environment tag (e.g., lab, demo, dev)"
+variable "salesforce_client_id" {
+  description = "Salesforce Connected App Consumer Key"
   type        = string
+  sensitive   = true
 }
 
-variable "owner_suffix" {
-  description = "Attendee-specific suffix (e.g., flastname, astro)"
+variable "salesforce_username" {
+  description = "Salesforce username for JWT"
   type        = string
-
-  # Keep names S3-legal and predictable in a workshop
-  validation {
-    condition     = can(regex("^[a-z0-9-]{2,32}$", var.owner_suffix))
-    error_message = "owner_suffix must be 2-32 chars, lowercase letters, digits, or hyphens."
-  }
+  sensitive   = true
 }
 
-variable "user_name" {
-  description = "IAM user name Salesforce will use for SigV4"
+variable "salesforce_private_key" {
+  description = "Private key for JWT (PEM format)"
   type        = string
-  default     = "sfdc-event-relay-user"
-}
-
-variable "policy_name" {
-  description = "Name for the least-privilege policy"
-  type        = string
-  default     = "sfdc-event-relay-put-partner-events"
+  sensitive   = true
 }

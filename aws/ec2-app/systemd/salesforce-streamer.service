@@ -1,0 +1,16 @@
+[Unit]
+Description=Salesforce Login Event Streamer
+After=network.target
+
+[Service]
+Type=simple
+User=salesforce-streamer
+WorkingDirectory=/opt/salesforce-streamer
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+EnvironmentFile=/opt/salesforce-streamer/.env
+ExecStart=/usr/bin/python3 /opt/salesforce-streamer/app.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

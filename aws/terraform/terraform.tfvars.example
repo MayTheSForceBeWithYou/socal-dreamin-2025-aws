@@ -1,9 +1,39 @@
-# Copy to terraform.tfvars and edit values before terraform init/apply
+# Example terraform.tfvars file
+# Copy this file to terraform.tfvars and fill in your values
 
-region        = "us-west-1"
-bucket_prefix = "socal-dreamin-2025-aws-login-history-data"
-environment   = "lab"
+aws_region = "us-west-1"
+project_name = "salesforce-opensearch-lab"
+owner = "lab-user"
+vpc_cidr = "10.0.0.0/16"
 
-# Set to your tag (all lowercase, numbers and hyphens OK)
-# examples: "jdoe", "astro", "a-perez"
-owner_suffix  = "yourinitialslastname"
+# SSH Public Key - Replace with your actual public key
+ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC..."
+
+# OpenSearch Configuration
+opensearch_instance_type = "t3.small.search"
+opensearch_instance_count = 1
+opensearch_ebs_volume_size = 20
+
+# EC2 Configuration
+ec2_instance_type = "t3.micro"
+poll_interval_seconds = 60
+
+# Salesforce Configuration
+# Replace with your actual Salesforce instance URL
+salesforce_instance_url = "https://your-instance.salesforce.com"
+
+# Salesforce JWT Credentials
+# Replace with your actual Connected App Consumer Key
+salesforce_client_id = "your-connected-app-consumer-key"
+
+# Replace with your actual Salesforce username
+salesforce_username = "your-salesforce-username@your-domain.com"
+
+# Replace with your actual private key (PEM format)
+# This should be the private key that corresponds to the public key
+# uploaded to your Salesforce Connected App
+salesforce_private_key = """
+-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC...
+-----END PRIVATE KEY-----
+"""

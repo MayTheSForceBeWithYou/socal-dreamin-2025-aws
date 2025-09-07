@@ -6,11 +6,11 @@ set -e
 # Paths
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 echo "ROOT_DIR: $ROOT_DIR"
-XML_FILE="$ROOT_DIR/salesforce/force-app/main/default/connectedApps/AWS_Lambda_PubSub_App.connectedApp-meta.xml"
+CONNECTED_APP_XML_FILE="$ROOT_DIR/salesforce/force-app/main/default/connectedApps/AWS_Lambda_PubSub_App.connectedApp-meta.xml"
 
 # Check if the XML file exists
-if [[ ! -f "$XML_FILE" ]]; then
-  echo "❌ XML file not found at: $XML_FILE"
+if [[ ! -f "$CONNECTED_APP_XML_FILE" ]]; then
+  echo "❌ XML file not found at: $CONNECTED_APP_XML_FILE"
   exit 1
 fi
 
@@ -24,7 +24,7 @@ if [[ ! "$CONTACT_EMAIL" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]];
 fi
 
 # Backup the XML file
-cp $XML_FILE ${XML_FILE}.bak
+cp $CONNECTED_APP_XML_FILE ${CONNECTED_APP_XML_FILE}.bak
 
 # Update the <contactEmail> value
 echo "🔧 Updating <contactEmail> in XML..."
@@ -36,7 +36,7 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 else
   SED_INPLACE="sed -i"
 fi
-$SED_INPLACE "s|<contactEmail>.*</contactEmail>|<contactEmail>${CONTACT_EMAIL}</contactEmail>|" "$XML_FILE"
+$SED_INPLACE "s|<contactEmail>.*</contactEmail>|<contactEmail>${CONTACT_EMAIL}</contactEmail>|" "$CONNECTED_APP_XML_FILE"
 
 echo "✅ Updated <contactEmail> to: $CONTACT_EMAIL"
 
@@ -45,19 +45,19 @@ $SED_INPLACE "s|replace@with.your.email|${CONTACT_EMAIL}|" $ROOT_DIR/salesforce/
 
 echo "✅ Updated email in config/integration-user-def.json to: $CONTACT_EMAIL"
 
-# Run the generate-digital-certificate.sh script
-source "$ROOT_DIR/salesforce/scripts/shell/generate-digital-certificate.sh"
+# Run the generate-salesforce-certificate.sh script
+source "$ROOT_DIR/salesforce/scripts/shell/generate-salesforce-certificate.sh"
 
 CERT_FILE="$ROOT_DIR/salesforce/certs/aws-to-sf-cert.crt"
 # Strip header/footer and line breaks from certificate body
 CERT_BODY=$(awk 'BEGIN { ORS="" } /-----BEGIN CERTIFICATE-----/ { next } /-----END CERTIFICATE-----/ { next } { print }' "$CERT_FILE")
 
 # Use sed to replace the commented-out <certificate> tag with the actual certificate contents
-$SED_INPLACE "s|<!--certificate>.*</certificate-->|<certificate>${CERT_BODY}</certificate>|" "$XML_FILE"
+$SED_INPLACE "s|<!--certificate>.*</certificate-->|<certificate>${CERT_BODY}</certificate>|" "$CONNECTED_APP_XML_FILE"
 
 echo "✅ Embedded certificate into Connected App XML"
 
-echo "📄 Backup saved as: ${XML_FILE}.bak"
+echo "📄 Backup saved as: ${CONNECTED_APP_XML_FILE}.bak"
 
 # Navigate to the Salesforce directory
 cd $ROOT_DIR/salesforce
@@ -85,7 +85,7 @@ sf org create user --definition-file $ROOT_DIR/salesforce/config/integration-use
 sf project retrieve start --metadata ConnectedApp:AWS_Lambda_PubSub_App
 
 # Read the connected app's consumerKey from the xml file and store in a variable
-CLIENT_KEY=$(awk '/<consumerKey>.*<\/consumerKey>/ {print $1}' "$XML_FILE" | sed -e 's/<consumerKey>//' -e 's/<\/consumerKey>//')
+CLIENT_KEY=$(awk '/<consumerKey>.*<\/consumerKey>/ {print $1}' "$CONNECTED_APP_XML_FILE" | sed -e 's/<consumerKey>//' -e 's/<\/consumerKey>//')
 echo "CLIENT_KEY: $CLIENT_KEY"
 
 # Retrieve the integration user's username
@@ -94,10 +94,10 @@ echo "INTEGRATION_USER_USERNAME: $INTEGRATION_USER_USERNAME"
 
 PRIVATE_KEY_FILE="salesforce/certs/aws-to-sf-cert.key"
 
-# Create the sfdc-auth-secrets.json file
+# Write Salesforce Auth Secrets to aws/terraform/terraform.tfvars file
 echo "🔧 Creating sfdc-auth-secrets.json file..."
 # Use EOF to write the file
-cat << EOF > $ROOT_DIR/aws/sfdc-auth-secrets.json
+cat << EOF > $ROOT_DIR/aws/terraform/terraform.tfvars
 {
   "clientId": "$CLIENT_KEY",
   "username": "$INTEGRATION_USER_USERNAME",
@@ -105,8 +105,19 @@ cat << EOF > $ROOT_DIR/aws/sfdc-auth-secrets.json
   "privateKey": "$(awk '{printf "%s\\n", $0}' "$PRIVATE_KEY_FILE")"
 }
 EOF
-echo "✅ sfdc-auth-secrets.json file created"
+echo "✅ terraform.tfvars file updated"
 
-# Print the sfdc-auth-secrets.json file
-echo "📄 sfdc-auth-secrets.json file:"
-cat $ROOT_DIR/salesforce/sfdc-auth-secrets.json
+# Read the salesforce/certs/aws-to-sf-cert.key file and use heredoc to write the private key to the aws/terraform/terraform.tfvars file
+# Example:
+# Replace this
+# salesforce_private_key = REPLACE_WITH_YOUR_PRIVATE_KEY
+# With this:
+# salesforce_private_key = <<-EOT
+# -----BEGIN PRIVATE KEY-----
+# M3MASDHKLJALSHDLKASDHLAKSHDL
+# KASHDKLASHDKLASHDKLASHDKLASH
+# -----END PRIVATE KEY-----
+# EOT
+# Using sed to replace the line in the aws/terraform/terraform.tfvars file
+$SED_INPLACE "s|REPLACE_WITH_YOUR_PRIVATE_KEY|$(awk '{printf "%s\\n", $0}' "$PRIVATE_KEY_FILE")|" $ROOT_DIR/aws/terraform/terraform.tfvars
+echo "✅ Private key added to aws/terraform/terraform.tfvars file"

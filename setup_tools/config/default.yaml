@@ -1,0 +1,30 @@
+# Default configuration for Setup Tools
+
+# Project settings
+log_level: INFO
+dry_run: false
+verbose: false
+
+# Salesforce configuration
+salesforce:
+  org_name: "socal-dreamin-2025-aws"
+  duration_days: 30
+  contact_email: ""
+  instance_url: ""
+  client_id: ""
+  username: ""
+  private_key_path: "salesforce/certs/aws-to-sf-cert.key"
+  certificate_path: "salesforce/certs/aws-to-sf-cert.crt"
+  connected_app_xml: "salesforce/force-app/main/default/connectedApps/AWS_Lambda_PubSub_App.connectedApp-meta.xml"
+  integration_user_def: "salesforce/config/integration-user-def.json"
+  project_scratch_def: "salesforce/config/project-scratch-def.json"
+
+# AWS configuration
+aws:
+  region: "us-west-2"
+  ssh_key_name: "aws-ec2"
+  ssh_key_path: "aws/certs/aws-ec2"
+  terraform_dir: "aws/terraform"
+  terraform_vars_file: "aws/terraform/terraform.tfvars"
+  ec2_instance_type: "t3.micro"
+  certificate_dir: "aws/certs"

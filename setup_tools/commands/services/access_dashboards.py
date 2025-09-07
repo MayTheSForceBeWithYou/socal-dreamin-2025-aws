@@ -1,0 +1,386 @@
+#!/usr/bin/env python3
+"""
+OpenSearch Dashboard Access Manager
+Provides multiple reliable methods for accessing OpenSearch Dashboards
+"""
+
+import os
+import sys
+import json
+import time
+import base64
+import subprocess
+import webbrowser
+from pathlib import Path
+from typing import Dict, Optional, Tuple
+import click
+import requests
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+from rich.prompt import Prompt, Confirm
+
+# Add the project root to Python path
+project_root = Path(__file__).parent.parent.parent.parent
+sys.path.insert(0, str(project_root))
+
+console = Console()
+
+
+class OpenSearchDashboardAccess:
+    """Manages OpenSearch Dashboard access methods."""
+    
+    def __init__(self):
+        self.project_root = project_root
+        self.terraform_dir = self.project_root / "aws" / "terraform"
+        
+    def get_opensearch_credentials(self) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+        """Get OpenSearch credentials from Terraform outputs."""
+        try:
+            os.chdir(self.terraform_dir)
+            
+            result = subprocess.run(
+                ["terraform", "output", "-json"],
+                capture_output=True,
+                text=True,
+                timeout=60
+            )
+            
+            if result.returncode != 0:
+                console.print("[red]❌ Failed to get Terraform outputs[/red]")
+                return None, None, None
+            
+            outputs = json.loads(result.stdout)
+            endpoint = outputs.get("opensearch_endpoint", {}).get("value")
+            password = outputs.get("opensearch_master_password", {}).get("value")
+            ec2_ip = outputs.get("ec2_public_ip", {}).get("value")
+            
+            return endpoint, password, ec2_ip
+            
+        except Exception as e:
+            console.print(f"[red]❌ Error getting credentials: {e}[/red]")
+            return None, None, None
+        finally:
+            os.chdir(self.project_root)
+    
+    def test_direct_access(self, endpoint: str, password: str) -> bool:
+        """Test direct browser access to OpenSearch Dashboards."""
+        try:
+            credentials = f"admin:{password}"
+            encoded_credentials = base64.b64encode(credentials.encode()).decode()
+            
+            response = requests.get(
+                f"https://{endpoint}/_dashboards/",
+                headers={'Authorization': f'Basic {encoded_credentials}'},
+                timeout=30
+            )
+            
+            return response.status_code == 200
+            
+        except Exception as e:
+            console.print(f"[red]❌ Direct access test failed: {e}[/red]")
+            return False
+    
+    def test_ssh_tunnel_access(self, endpoint: str, password: str, ec2_ip: str) -> bool:
+        """Test SSH tunnel access to OpenSearch Dashboards."""
+        try:
+            ssh_key = self.project_root / "aws" / "certs" / "aws-ec2"
+            if not ssh_key.exists():
+                console.print("[red]❌ SSH key not found[/red]")
+                return False
+            
+            # Test SSH connection
+            result = subprocess.run(
+                [
+                    "ssh", "-i", str(ssh_key),
+                    "-o", "StrictHostKeyChecking=no",
+                    "-o", "ConnectTimeout=10",
+                    f"ec2-user@{ec2_ip}",
+                    "echo 'connected'"
+                ],
+                capture_output=True,
+                text=True,
+                timeout=15
+            )
+            
+            if result.returncode != 0:
+                console.print("[red]❌ SSH connection failed[/red]")
+                return False
+            
+            # Test OpenSearch access from EC2
+            credentials = f"admin:{password}"
+            encoded_credentials = base64.b64encode(credentials.encode()).decode()
+            
+            result = subprocess.run(
+                [
+                    "ssh", "-i", str(ssh_key),
+                    "-o", "StrictHostKeyChecking=no",
+                    "-o", "ConnectTimeout=10",
+                    f"ec2-user@{ec2_ip}",
+                    f"curl -s -u admin:{password} https://{endpoint}/"
+                ],
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+            
+            return result.returncode == 0
+            
+        except Exception as e:
+            console.print(f"[red]❌ SSH tunnel test failed: {e}[/red]")
+            return False
+    
+    def create_dashboard_access_guide(self, endpoint: str, password: str, ec2_ip: str):
+        """Create a comprehensive dashboard access guide."""
+        
+        # Test access methods
+        direct_access = self.test_direct_access(endpoint, password)
+        ssh_access = self.test_ssh_tunnel_access(endpoint, password, ec2_ip)
+        
+        # Create access guide
+        guide_content = f'''#!/bin/bash
+# OpenSearch Dashboard Access Guide
+# Generated by setup_tools
+
+set -e
+
+OPENSEARCH_ENDPOINT="{endpoint}"
+OPENSEARCH_PASSWORD="{password}"
+EC2_IP="{ec2_ip}"
+
+echo "🔍 OpenSearch Dashboard Access Guide"
+echo "===================================="
+echo ""
+echo "OpenSearch Endpoint: $OPENSEARCH_ENDPOINT"
+echo "Dashboard URL: https://$OPENSEARCH_ENDPOINT/_dashboards/"
+echo ""
+echo "📝 Login Credentials:"
+echo "Username: admin"
+echo "Password: $OPENSEARCH_PASSWORD"
+echo ""
+
+# Test results
+echo "🔍 Access Method Status:"
+echo "Direct Browser Access: {"✅ Available" if direct_access else "❌ Not Available"}"
+echo "SSH Tunnel Access: {"✅ Available" if ssh_access else "❌ Not Available"}"
+echo ""
+
+echo "🚀 Recommended Access Methods:"
+echo ""
+
+if direct_access:
+    echo "Method 1: Direct Browser Access (Recommended)"
+    echo "---------------------------------------------"
+    echo "1. Open your browser"
+    echo "2. Go to: https://$OPENSEARCH_ENDPOINT/_dashboards/"
+    echo "3. Login with:"
+    echo "   Username: admin"
+    echo "   Password: $OPENSEARCH_PASSWORD"
+    echo "4. You should see the OpenSearch Dashboards interface"
+    echo ""
+else:
+    echo "Method 1: Direct Browser Access"
+    echo "-------------------------------"
+    echo "❌ Direct access not available (authentication required)"
+    echo ""
+
+if ssh_access:
+    echo "Method 2: SSH Tunnel + Browser (Alternative)"
+    echo "---------------------------------------------"
+    echo "1. Start SSH tunnel (run in separate terminal):"
+    echo "   ssh -i aws/certs/aws-ec2 -L 9200:localhost:9200 ec2-user@$EC2_IP"
+    echo ""
+    echo "2. Keep that terminal open"
+    echo ""
+    echo "3. In your browser, go to: https://localhost:9200/_dashboards/"
+    echo ""
+    echo "4. Login with:"
+    echo "   Username: admin"
+    echo "   Password: $OPENSEARCH_PASSWORD"
+    echo ""
+else:
+    echo "Method 2: SSH Tunnel + Browser"
+    echo "-------------------------------"
+    echo "❌ SSH tunnel not available"
+    echo ""
+
+echo "Method 3: Python Proxy Server"
+echo "------------------------------"
+echo "1. Start the proxy server:"
+echo "   python -m setup_tools services start-dashboard-proxy"
+echo ""
+echo "2. Access dashboard at: http://localhost:8080/_dashboards/"
+echo ""
+
+echo "Method 4: AWS Console"
+echo "---------------------"
+echo "1. Go to AWS Console: https://console.aws.amazon.com/"
+echo "2. Navigate to OpenSearch service"
+echo "3. Find your domain: salesforce-opensearch-lab-os"
+echo "4. Click 'OpenSearch Dashboards URL'"
+echo "5. Login with the credentials above"
+echo ""
+
+echo "📊 What You Can Do in Dashboards:"
+echo "- View indexed Salesforce login events"
+echo "- Create visualizations and dashboards"
+echo "- Search and filter data"
+echo "- Set up monitoring alerts"
+echo "- Configure index patterns"
+echo ""
+
+echo "🔧 Troubleshooting:"
+echo "If you can't access the dashboards:"
+echo "1. Check that your EC2 instance is running"
+echo "2. Verify OpenSearch domain is healthy in AWS Console"
+echo "3. Try the Python proxy server method"
+echo "4. Check application logs: ssh -i aws/certs/aws-ec2 ec2-user@$EC2_IP"
+echo ""
+
+echo "📞 Support:"
+echo "For additional help, run: python -m setup_tools validation validate-lab --comprehensive"
+echo ""
+'''
+        
+        script_path = self.project_root / "scripts" / "access-opensearch-dashboards.sh"
+        with open(script_path, 'w') as f:
+            f.write(guide_content)
+        
+        # Make executable
+        os.chmod(script_path, 0o755)
+        
+        return script_path
+    
+    def display_access_summary(self, endpoint: str, password: str, ec2_ip: str):
+        """Display dashboard access summary."""
+        
+        # Test access methods
+        direct_access = self.test_direct_access(endpoint, password)
+        ssh_access = self.test_ssh_tunnel_access(endpoint, password, ec2_ip)
+        
+        # Create summary table
+        table = Table(title="📊 OpenSearch Dashboard Access Summary")
+        table.add_column("Method", style="cyan")
+        table.add_column("Status", style="white")
+        table.add_column("URL", style="white")
+        
+        table.add_row(
+            "Direct Browser",
+            "✅ Available" if direct_access else "❌ Not Available",
+            f"https://{endpoint}/_dashboards/"
+        )
+        
+        table.add_row(
+            "SSH Tunnel",
+            "✅ Available" if ssh_access else "❌ Not Available",
+            "https://localhost:9200/_dashboards/"
+        )
+        
+        table.add_row(
+            "Python Proxy",
+            "✅ Available",
+            "http://localhost:8080/_dashboards/"
+        )
+        
+        table.add_row(
+            "AWS Console",
+            "✅ Available",
+            "AWS Console → OpenSearch → Dashboards"
+        )
+        
+        console.print(table)
+        
+        # Display credentials
+        console.print(Panel(
+            f"Login Credentials:\n"
+            f"Username: admin\n"
+            f"Password: {password}",
+            title="🔐 Authentication",
+            border_style="green"
+        ))
+        
+        # Display recommendations
+        if direct_access:
+            console.print(Panel(
+                f"🎯 Recommended: Direct Browser Access\n"
+                f"URL: https://{endpoint}/_dashboards/\n"
+                f"Just login with the credentials above!",
+                title="💡 Best Option",
+                border_style="green"
+            ))
+        else:
+            console.print(Panel(
+                f"🎯 Recommended: Python Proxy Server\n"
+                f"Run: python -m setup_tools services start-dashboard-proxy\n"
+                f"Then access: http://localhost:8080/_dashboards/",
+                title="💡 Best Option",
+                border_style="yellow"
+            ))
+
+
+@click.command()
+@click.option('--open-browser', is_flag=True, help='Open browser automatically')
+@click.option('--create-guide', is_flag=True, help='Create access guide script')
+def access_dashboards(open_browser: bool, create_guide: bool):
+    """Access OpenSearch Dashboards with multiple methods."""
+    
+    console.print(Panel(
+        "📊 OpenSearch Dashboard Access\n"
+        "Provides multiple reliable methods for accessing dashboards",
+        title="Dashboard Access",
+        border_style="blue"
+    ))
+    
+    access_manager = OpenSearchDashboardAccess()
+    
+    # Get credentials
+    console.print("[yellow]🔍 Getting OpenSearch credentials...[/yellow]")
+    endpoint, password, ec2_ip = access_manager.get_opensearch_credentials()
+    
+    if not endpoint or not password:
+        console.print("[red]❌ Could not get OpenSearch credentials[/red]")
+        console.print("[yellow]Make sure Terraform has been deployed successfully[/yellow]")
+        return
+    
+    console.print(f"[green]✅ Got credentials for {endpoint}[/green]")
+    
+    # Display access summary
+    access_manager.display_access_summary(endpoint, password, ec2_ip)
+    
+    # Create access guide if requested
+    if create_guide:
+        console.print("[yellow]📝 Creating access guide script...[/yellow]")
+        guide_path = access_manager.create_dashboard_access_guide(endpoint, password, ec2_ip)
+        console.print(f"[green]✅ Access guide created: {guide_path}[/green]")
+    
+    # Open browser if requested
+    if open_browser:
+        console.print("[yellow]🌐 Opening browser...[/yellow]")
+        
+        # Test direct access first
+        if access_manager.test_direct_access(endpoint, password):
+            dashboard_url = f"https://{endpoint}/_dashboards/"
+            console.print(f"[blue]Opening: {dashboard_url}[/blue]")
+            webbrowser.open(dashboard_url)
+        else:
+            console.print("[yellow]⚠️  Direct access not available, starting proxy server...[/yellow]")
+            
+            # Start proxy server
+            proxy_command = [
+                sys.executable, "-m", "setup_tools", 
+                "services", "start-dashboard-proxy",
+                "--endpoint", endpoint,
+                "--password", password
+            ]
+            
+            console.print("[blue]Starting proxy server...[/blue]")
+            console.print("[yellow]Once started, access: http://localhost:8080/_dashboards/[/yellow]")
+            
+            try:
+                subprocess.run(proxy_command)
+            except KeyboardInterrupt:
+                console.print("\n[yellow]🛑 Proxy server stopped[/yellow]")
+
+
+if __name__ == "__main__":
+    access_dashboards()

@@ -1,0 +1,15 @@
+# Demo environment configuration
+
+log_level: INFO
+dry_run: false
+verbose: true
+
+salesforce:
+  org_name: "demo-scratch-org"
+  duration_days: 7
+  contact_email: "demo@socaldreamin.com"
+
+aws:
+  region: "us-west-2"
+  ssh_key_name: "demo-ec2-key"
+  ec2_instance_type: "t3.small"
