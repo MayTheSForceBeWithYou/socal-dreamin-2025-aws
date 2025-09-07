@@ -25,28 +25,40 @@ visualization, anomaly detection, and security alerting.
 
 ## Prerequisites
 
--   Salesforce Developer Edition OR Trailhead Playground OR Scratch Org
--   AWS account (free tier eligible)
--   Python 3.9+
--   AWS CLI configured (`aws configure`)
+### Required Software
+-   **Python 3.9+** with pip
+-   **AWS CLI** configured (`aws configure`)
+-   **Terraform** (latest version)
+-   **Git** (for cloning the repository)
+
+### Required Accounts
+-   **AWS Account** (free tier eligible)
+-   **Salesforce Developer Edition** OR Trailhead Playground OR Scratch Org
+
+### Required Knowledge
 -   Basic knowledge of Salesforce & AWS
+-   Understanding of SSH keys and certificates
+-   Familiarity with command line tools
+
+### Prerequisites Validation
+The setup tools will automatically validate these prerequisites:
+- ✅ AWS CLI configuration
+- ✅ Terraform installation
+- ✅ SSH keypair generation
+- ✅ Salesforce configuration
+- ✅ Terraform variables setup
 
 ## Manual Walkthrough (Summary)
 
 1.  **Salesforce Setup**
     -   Create a Developer Org, Trailhead Playground, or Scratch Org.
     -   Collect `LoginHistory` events via Salesforce APIs.
-    -   Generate a Security Token for API access.
+    -   Generate a digital certificate for API access.
 2.  **AWS Setup**
-    -   Create S3 bucket (backup destination).
     -   Create an **Amazon OpenSearch Service** domain
         (`t3.small.search`, free tier).
-    -   Create a **Kinesis Firehose** delivery stream → OpenSearch (+ S3
-        backup).
-3.  **Local Ingestion Script**
-    -   Use Python + `simple-salesforce` + `boto3` to pull LoginHistory
-        from Salesforce and push to Firehose.
-    -   Example script included in `/scripts/ingest_login_history.py`.
+    -   Create an **EC2 instance** with a Python app to poll
+        Salesforce and populate OpenSearch index.
 4.  **Visualize in OpenSearch**
     -   Create index template (`sfdc-logins*`).
     -   Build dashboards to monitor:
@@ -60,7 +72,7 @@ visualization, anomaly detection, and security alerting.
     -   Use it to log in to Salesforce to simulate foreign logins →
         validate anomaly detection.
 
-## 🚀 Complete Lab Infrastructure (NEW!)
+## 🚀 Complete Lab Infrastructure
 
 This lab now features a **comprehensive, bulletproof setup system** with:
 
@@ -70,11 +82,58 @@ This lab now features a **comprehensive, bulletproof setup system** with:
 - **Comprehensive validation**: End-to-end testing and validation
 - **Production-ready**: Error handling, monitoring, and troubleshooting
 
+### Quick Setup (Recommended)
+
+**Option 1: Automated Setup Script**
+```bash
+# Clone the repository
+git clone <repository-url>
+cd socal-dreamin-2025-aws
+
+# Run the automated setup script
+./setup.sh
+```
+
+**Option 2: Manual Setup**
+
+1. **Navigate to project root and create virtual environment:**
+   ```bash
+   cd /path/to/socal-dreamin-2025-aws
+   python -m venv .venv
+   source .venv/bin/activate
+   ```
+
+2. **Install requirements:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Set up prerequisites (run these commands first):**
+   ```bash
+   # Generate AWS SSH keypair
+   python -m setup_tools.main aws generate-certificate --key-name aws-ec2
+   
+   # Generate Salesforce certificate
+   python -m setup_tools.main salesforce generate-certificate
+   
+   # Create Terraform variables file (this will also create Salesforce scratch org and Connected App)
+   python -m setup_tools.main infrastructure setup-terraform-vars --environment demo
+   ```
+
+4. **Configure Salesforce credentials:**
+   - Copy `aws/sfdc-auth-secrets.json.example` to `aws/sfdc-auth-secrets.json`
+   - Edit the file with your Salesforce Connected App credentials
+   - The setup process will automatically:
+     - Create a Salesforce scratch org
+     - Update the Connected App with your email and certificate
+     - Deploy the Connected App to Salesforce
+     - Retrieve the Consumer Key automatically
+
 ### 🎯 Master Setup Command
 
 ```bash
 # Deploy complete lab with validation
-python -m setup_tools infrastructure deploy-complete-lab --environment demo --validate
+python -m setup_tools.main infrastructure deploy-complete-lab --environment demo --validate
 ```
 
 This single command will:
@@ -162,10 +221,18 @@ python -m setup_tools validation validate-lab --component <component>
 
 **Common Issues & Solutions:**
 
-1. **OpenSearch Authentication**: Use the Python proxy server method
-2. **EC2 Connection**: Check SSH key permissions and security groups  
-3. **Salesforce Integration**: Verify Connected App configuration
-4. **Data Pipeline**: Generate test data if no real data is flowing
+1. **Prerequisites Validation Failures**:
+   - **SSH Key Missing**: Run `python -m setup_tools.main aws generate-certificate --key-name aws-ec2`
+   - **Salesforce Config Missing**: Copy `aws/sfdc-auth-secrets.json.example` to `aws/sfdc-auth-secrets.json` and configure
+   - **Terraform Variables Missing**: Run `python -m setup_tools.main infrastructure setup-terraform-vars --environment demo`
+   - **AWS CLI Not Configured**: Run `aws configure` with your credentials
+   - **Salesforce CLI Not Found**: Install Salesforce CLI from https://developer.salesforce.com/tools/sfdxcli
+   - **Salesforce Certificate Missing**: Run `python -m setup_tools.main salesforce generate-certificate` first
+
+2. **OpenSearch Authentication**: Use the Python proxy server method
+3. **EC2 Connection**: Check SSH key permissions and security groups  
+4. **Salesforce Integration**: Verify Connected App configuration
+5. **Data Pipeline**: Generate test data if no real data is flowing
 
 ### 🎉 Key Features
 

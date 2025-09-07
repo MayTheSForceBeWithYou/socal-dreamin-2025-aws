@@ -1,0 +1,12 @@
+# Root requirements.txt - includes all project dependencies
+# This file includes both setup_tools and application requirements
+
+# Setup Tools Requirements
+-r setup_tools/requirements.txt
+
+# Application Requirements (EC2 app)
+-r aws/ec2-app/requirements.txt
+
+# Additional dependencies for complete lab setup
+paramiko>=3.0.0
+cryptography>=3.4.8

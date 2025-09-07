@@ -18,6 +18,7 @@ from .commands.salesforce.query_login_history import QueryLoginHistoryCommand
 from .commands.salesforce.create_integration_user import CreateIntegrationUserCommand
 from .commands.aws.generate_certificate import GenerateAWSCertificateCommand
 from .commands.infrastructure.deploy_complete_lab import deploy_complete_lab
+from .commands.infrastructure.setup_terraform_vars import setup_terraform_vars
 from .commands.services.start_dashboard_proxy import start_dashboard_proxy
 from .commands.services.access_dashboards import access_dashboards
 from .commands.validation.validate_lab import validate_lab
@@ -275,6 +276,15 @@ def aws_generate_certificate(ctx, key_name):
 def infrastructure_deploy_complete_lab(ctx, environment, config, dry_run, validate, skip_prereqs):
     """Deploy complete lab infrastructure and application."""
     deploy_complete_lab.callback(environment, config, dry_run, validate, skip_prereqs)
+
+
+@infrastructure.command('setup-terraform-vars')
+@click.option('--environment', default='demo', help='Environment name')
+@click.option('--config', '-c', type=click.Path(exists=True), help='Configuration file path')
+@click.pass_context
+def infrastructure_setup_terraform_vars(ctx, environment, config):
+    """Set up Terraform variables file from template."""
+    setup_terraform_vars.callback(environment, config)
 
 
 # Services Commands
