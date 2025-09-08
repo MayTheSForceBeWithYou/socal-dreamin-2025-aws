@@ -42,6 +42,23 @@ class CreateIntegrationUserCommand(BaseCommand):
             # Validate inputs
             self.validate_inputs(contact_email=contact_email)
             
+            # Check if integration user already exists
+            if self._integration_user_exists():
+                self.console.print("[yellow]⚠️  Integration user already exists, skipping creation[/yellow]")
+                user_info = self._get_user_info(self.config.root_dir / "salesforce", "socal-dreamin-2025-aws-integration-user")
+                self.console.print(f"[green]✅ Using existing integration user[/green]")
+                self.console.print(f"[blue]Username: {user_info.get('username', 'N/A')}[/blue]")
+                self.console.print(f"[blue]User ID: {user_info.get('id', 'N/A')}[/blue]")
+                
+                return {
+                    'success': True,
+                    'contact_email': contact_email,
+                    'instance_url': self._get_org_instance_url(self.config.root_dir / "salesforce"),
+                    'user_info': user_info,
+                    'command_output': 'User already exists - skipped creation',
+                    'skipped': True
+                }
+            
             # Check if sf CLI is available
             if not self.shell.check_command_exists("sf"):
                 raise SalesforceError("Salesforce CLI (sf) is not installed or not in PATH")
@@ -78,9 +95,19 @@ class CreateIntegrationUserCommand(BaseCommand):
                     "--set-alias", "socal-dreamin-2025-aws-integration-user"
                 ]
                 
-                result = self.shell.execute(command, cwd=salesforce_dir, capture_output=True)
-                
-                progress.update(task, description="Integration user created successfully!")
+                try:
+                    result = self.shell.execute(command, cwd=salesforce_dir, capture_output=True)
+                    progress.update(task, description="Integration user created successfully!")
+                except Exception as cmd_error:
+                    # Display the command output for debugging
+                    self.console.print(f"[red]❌ Command failed: {' '.join(command)}[/red]")
+                    if hasattr(cmd_error, 'stderr') and cmd_error.stderr:
+                        self.console.print(f"[red]Error output:[/red]")
+                        self.console.print(f"[red]{cmd_error.stderr}[/red]")
+                    if hasattr(cmd_error, 'stdout') and cmd_error.stdout:
+                        self.console.print(f"[yellow]Standard output:[/yellow]")
+                        self.console.print(f"[yellow]{cmd_error.stdout}[/yellow]")
+                    raise SalesforceError(f"Failed to create integration user: {cmd_error}")
             
             # Get the created user information
             user_info = self._get_user_info(salesforce_dir, "socal-dreamin-2025-aws-integration-user")
@@ -100,6 +127,7 @@ class CreateIntegrationUserCommand(BaseCommand):
         except Exception as e:
             if isinstance(e, SalesforceError):
                 raise
+            # This should not happen now since we handle command errors above
             raise SalesforceError(f"Failed to create integration user: {e}")
     
     def validate_inputs(self, contact_email: str, **kwargs) -> None:
@@ -221,6 +249,31 @@ class CreateIntegrationUserCommand(BaseCommand):
             
         except Exception as e:
             raise SalesforceError(f"Failed to update username domain: {e}")
+    
+    def _integration_user_exists(self) -> bool:
+        """
+        Check if the integration user already exists in the org.
+        
+        Returns:
+            True if the integration user exists, False otherwise
+        """
+        try:
+            salesforce_dir = self.config.root_dir / "salesforce"
+            result = self.shell.execute(
+                ["sf", "org", "display", "--target-org", "socal-dreamin-2025-aws-integration-user", "--json"],
+                cwd=salesforce_dir,
+                capture_output=True
+            )
+            
+            import json
+            org_data = json.loads(result.stdout)
+            # Check if we got a valid result with an org ID (means the user exists)
+            return org_data.get('status') == 0 and org_data.get('result', {}).get('id') is not None
+            
+        except Exception as e:
+            # If the command fails, assume the user doesn't exist
+            self.logger.debug(f"Integration user existence check failed: {e}")
+            return False
     
     def _get_user_info(self, salesforce_dir: Path, alias: str) -> Dict[str, str]:
         """

@@ -100,17 +100,29 @@ class QueryLoginHistoryCommand(BaseCommand):
                         "--result-format", "csv"
                     ]
                     
-                    result = self.shell.execute(command, capture_output=True)
-                    
-                    # Write output to CSV file
-                    self.file_ops.write_file(output_file, result.stdout)
-                    
-                    results.append({
-                        'query_file': str(query_file),
-                        'output_file': str(output_file),
-                        'description': query_info['description'],
-                        'success': True
-                    })
+                    try:
+                        result = self.shell.execute(command, capture_output=True)
+                        
+                        # Write output to CSV file
+                        self.file_ops.write_file(output_file, result.stdout)
+                        
+                        results.append({
+                            'query_file': str(query_file),
+                            'output_file': str(output_file),
+                            'description': query_info['description'],
+                            'success': True
+                        })
+                        
+                    except Exception as cmd_error:
+                        # Display the command output for debugging
+                        self.console.print(f"[red]❌ Query failed: {' '.join(command)}[/red]")
+                        if hasattr(cmd_error, 'stderr') and cmd_error.stderr:
+                            self.console.print(f"[red]Error output:[/red]")
+                            self.console.print(f"[red]{cmd_error.stderr}[/red]")
+                        if hasattr(cmd_error, 'stdout') and cmd_error.stdout:
+                            self.console.print(f"[yellow]Standard output:[/yellow]")
+                            self.console.print(f"[yellow]{cmd_error.stdout}[/yellow]")
+                        raise SalesforceError(f"Failed to execute query {query_info['description']}: {cmd_error}")
                     
                     # Update progress
                     progress.update(main_task, advance=1)
@@ -133,6 +145,7 @@ class QueryLoginHistoryCommand(BaseCommand):
         except Exception as e:
             if isinstance(e, SalesforceError):
                 raise
+            # This should not happen now since we handle command errors above
             raise SalesforceError(f"Failed to query login history: {e}")
     
     def validate_inputs(self, **kwargs) -> None:

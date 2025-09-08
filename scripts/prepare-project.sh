@@ -78,8 +78,16 @@ $SED_INPLACE "s|@replace.with.instance.domain|@$INSTANCE_DOMAIN|" $ROOT_DIR/sale
 # Deploy the Salesforce project
 sf project deploy start --source-dir force-app
 
-# Create the integration user
-sf org create user --definition-file $ROOT_DIR/salesforce/config/integration-user-def.json --set-alias socal-dreamin-2025-aws-integration-user
+# Check if integration user already exists, create only if it doesn't
+echo "🔍 Checking if integration user already exists..."
+if sf org display --target-org socal-dreamin-2025-aws-integration-user --json >/dev/null 2>&1; then
+    echo "⚠️  Integration user already exists, skipping creation"
+    echo "✅ Using existing integration user"
+else
+    echo "👤 Creating integration user..."
+    sf org create user --definition-file $ROOT_DIR/salesforce/config/integration-user-def.json --set-alias socal-dreamin-2025-aws-integration-user
+    echo "✅ Integration user created successfully"
+fi
 
 # Retrieve the connected app with the Client Key
 sf project retrieve start --metadata ConnectedApp:AWS_Lambda_PubSub_App

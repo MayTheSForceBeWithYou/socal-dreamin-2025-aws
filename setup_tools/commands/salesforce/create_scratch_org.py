@@ -74,9 +74,19 @@ class CreateScratchOrgCommand(BaseCommand):
                     "--duration-days", str(duration_days)
                 ]
                 
-                result = self.shell.execute(command, cwd=salesforce_dir, capture_output=True)
-                
-                progress.update(task, description="Scratch org created successfully!")
+                try:
+                    result = self.shell.execute(command, cwd=salesforce_dir, capture_output=True)
+                    progress.update(task, description="Scratch org created successfully!")
+                except Exception as cmd_error:
+                    # Display the command output for debugging
+                    self.console.print(f"[red]❌ Command failed: {' '.join(command)}[/red]")
+                    if hasattr(cmd_error, 'stderr') and cmd_error.stderr:
+                        self.console.print(f"[red]Error output:[/red]")
+                        self.console.print(f"[red]{cmd_error.stderr}[/red]")
+                    if hasattr(cmd_error, 'stdout') and cmd_error.stdout:
+                        self.console.print(f"[yellow]Standard output:[/yellow]")
+                        self.console.print(f"[yellow]{cmd_error.stdout}[/yellow]")
+                    raise SalesforceError(f"Failed to create scratch org: {cmd_error}")
             
             # Get org information
             org_info = self._get_org_info(salesforce_dir)
@@ -96,6 +106,7 @@ class CreateScratchOrgCommand(BaseCommand):
         except Exception as e:
             if isinstance(e, SalesforceError):
                 raise
+            # This should not happen now since we handle command errors above
             raise SalesforceError(f"Failed to create scratch org: {e}")
     
     def validate_inputs(self, org_name: str, duration_days: int, **kwargs) -> None:
