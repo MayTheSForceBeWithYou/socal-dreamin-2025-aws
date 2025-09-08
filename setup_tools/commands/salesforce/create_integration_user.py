@@ -269,23 +269,42 @@ class CreateIntegrationUserCommand(BaseCommand):
     
     def _integration_user_exists(self) -> bool:
         """
-        Check if the integration user already exists in the org.
+        Check if the integration user already exists in the org by querying the User object.
         
         Returns:
             True if the integration user exists, False otherwise
         """
         try:
             salesforce_dir = self.config.root_dir / "salesforce"
+            
+            # Read the integration user definition to get the username
+            integration_user_file = self.config.root_dir / self.config.salesforce.integration_user_def
+            if not integration_user_file.exists():
+                self.logger.debug("Integration user definition file not found")
+                return False
+            
+            import json
+            with open(integration_user_file, 'r') as f:
+                user_def = json.load(f)
+            
+            username = user_def.get('Username')
+            if not username:
+                self.logger.debug("No username found in integration user definition")
+                return False
+            
+            # Query for the User with this username
+            soql_query = f"SELECT Id, Username FROM User WHERE Username = '{username}'"
             result = self.shell.execute(
-                ["sf", "org", "display", "--target-org", "socal-dreamin-2025-aws-integration-user", "--json"],
+                ["sf", "data", "query", "--query", soql_query, "--json"],
                 cwd=salesforce_dir,
                 capture_output=True
             )
             
-            import json
-            org_data = json.loads(result.stdout)
-            # Check if we got a valid result with an org ID (means the user exists)
-            return org_data.get('status') == 0 and org_data.get('result', {}).get('id') is not None
+            query_data = json.loads(result.stdout)
+            
+            # Check if we got any records (user exists)
+            records = query_data.get('result', {}).get('records', [])
+            return len(records) > 0
             
         except Exception as e:
             # If the command fails, assume the user doesn't exist
