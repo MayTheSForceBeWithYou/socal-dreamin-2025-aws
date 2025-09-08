@@ -269,6 +269,31 @@ def salesforce_setup_complete(ctx, contact_email, environment):
         raise click.Abort()
 
 
+@salesforce.command('deploy-project')
+@click.option('--environment', default='demo', help='Environment name')
+@click.pass_context
+def salesforce_deploy_project(ctx, environment):
+    """Deploy Salesforce project to scratch org."""
+    try:
+        command = CommandFactory.create_command(
+            'salesforce:deploy-project',
+            ctx.obj['config'],
+            dry_run=ctx.obj['dry_run'],
+            verbose=ctx.obj['verbose']
+        )
+        
+        result = command.execute(environment=environment)
+        
+        if result['success']:
+            console.print("[green]✅ Salesforce project deployed successfully![/green]")
+        else:
+            console.print("[red]❌ Failed to deploy Salesforce project[/red]")
+            
+    except Exception as e:
+        console.print(f"[red]Error: {e}[/red]")
+        raise click.Abort()
+
+
 @salesforce.command('query-login-history')
 @click.pass_context
 def salesforce_query_login_history(ctx):

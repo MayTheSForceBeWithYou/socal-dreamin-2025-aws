@@ -222,11 +222,30 @@ class SetupConnectedAppCommand(BaseCommand):
             result = self.shell.execute(command, cwd=salesforce_dir, capture_output=True)
             
             if result.returncode != 0:
+                # Display both stdout and stderr for debugging
+                self.console.print(f"[red]❌ Command failed: {' '.join(command)}[/red]")
+                if result.stdout:
+                    self.console.print(f"[yellow]Standard output:[/yellow]")
+                    self.console.print(f"[yellow]{result.stdout}[/yellow]")
+                if result.stderr:
+                    self.console.print(f"[red]Error output:[/red]")
+                    self.console.print(f"[red]{result.stderr}[/red]")
+                
+                # Try to execute the command again without capture_output to see the actual error
+                self.console.print(f"[yellow]Executing command again to show full output...[/yellow]")
+                try:
+                    self.shell.execute(command, cwd=salesforce_dir, capture_output=False)
+                except Exception as debug_error:
+                    self.console.print(f"[red]Full error output:[/red]")
+                    self.console.print(f"[red]{debug_error}[/red]")
+                
                 raise SalesforceError(f"Failed to deploy Connected App: {result.stderr}")
             
             self.logger.info("Connected App deployed successfully")
             
         except Exception as e:
+            if isinstance(e, SalesforceError):
+                raise
             raise SalesforceError(f"Failed to deploy Connected App: {e}")
     
     def _get_consumer_key(self, salesforce_dir: Path, environment: str) -> Optional[str]:
@@ -245,6 +264,14 @@ class SetupConnectedAppCommand(BaseCommand):
             result = self.shell.execute(command, cwd=salesforce_dir, capture_output=True)
             
             if result.returncode != 0:
+                # Display both stdout and stderr for debugging
+                self.console.print(f"[red]❌ Retrieve command failed: {' '.join(command)}[/red]")
+                if result.stdout:
+                    self.console.print(f"[yellow]Standard output:[/yellow]")
+                    self.console.print(f"[yellow]{result.stdout}[/yellow]")
+                if result.stderr:
+                    self.console.print(f"[red]Error output:[/red]")
+                    self.console.print(f"[red]{result.stderr}[/red]")
                 raise SalesforceError(f"Failed to retrieve Connected App: {result.stderr}")
             
             # Parse the retrieve result
@@ -284,6 +311,15 @@ class SetupConnectedAppCommand(BaseCommand):
                         consumer_key = records[0].get('ConsumerKey')
                         if consumer_key:
                             return consumer_key
+                else:
+                    # Display SOQL query error details
+                    self.console.print(f"[red]❌ SOQL query failed: {' '.join(soql_command)}[/red]")
+                    if soql_result.stdout:
+                        self.console.print(f"[yellow]SOQL Standard output:[/yellow]")
+                        self.console.print(f"[yellow]{soql_result.stdout}[/yellow]")
+                    if soql_result.stderr:
+                        self.console.print(f"[red]SOQL Error output:[/red]")
+                        self.console.print(f"[red]{soql_result.stderr}[/red]")
                 
                 raise SalesforceError("Could not find Consumer Key in retrieved metadata or SOQL query")
             else:

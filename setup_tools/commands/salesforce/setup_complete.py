@@ -85,7 +85,18 @@ class SetupCompleteSalesforceCommand(BaseCommand):
             app_result = app_command.execute(contact_email=contact_email, environment=environment)
             results['connected_app'] = app_result
             
-            # Step 4: Create integration user
+            # Step 4: Deploy Salesforce project
+            self.console.print("\n[bold]Step 4: Deploying Salesforce project...[/bold]")
+            deploy_command = CommandFactory.create_command(
+                'salesforce:deploy-project',
+                self.config,
+                dry_run=self.dry_run,
+                verbose=self.verbose
+            )
+            deploy_result = deploy_command.execute(environment=environment)
+            results['deploy'] = deploy_result
+            
+            # Step 5: Create integration user
             self.console.print("\n[bold]Step 4: Creating integration user...[/bold]")
             user_command = CommandFactory.create_command(
                 'salesforce:create-integration-user',

@@ -42,6 +42,28 @@ class CreateIntegrationUserCommand(BaseCommand):
             # Validate inputs
             self.validate_inputs(contact_email=contact_email)
             
+            # Check if sf CLI is available
+            if not self.shell.check_command_exists("sf"):
+                raise SalesforceError("Salesforce CLI (sf) is not installed or not in PATH")
+            
+            # Update integration user definition file with contact email
+            integration_user_file = self.config.root_dir / self.config.salesforce.integration_user_def
+            if not integration_user_file.exists():
+                raise SalesforceError(f"Integration user definition file not found: {integration_user_file}")
+            
+            # Change to Salesforce directory
+            salesforce_dir = self.config.root_dir / "salesforce"
+            if not salesforce_dir.exists():
+                raise SalesforceError(f"Salesforce directory not found: {salesforce_dir}")
+            
+            # Read and update the integration user definition
+            self._update_integration_user_file(integration_user_file, contact_email)
+            
+            # Get org instance URL and update the username domain
+            instance_url = self._get_org_instance_url(salesforce_dir)
+            if instance_url:
+                self._update_username_domain(integration_user_file, instance_url)
+            
             # Check if integration user already exists
             if self._integration_user_exists():
                 self.console.print("[yellow]⚠️  Integration user already exists, skipping creation[/yellow]")
@@ -59,28 +81,6 @@ class CreateIntegrationUserCommand(BaseCommand):
                     'skipped': True
                 }
             
-            # Check if sf CLI is available
-            if not self.shell.check_command_exists("sf"):
-                raise SalesforceError("Salesforce CLI (sf) is not installed or not in PATH")
-            
-            # Change to Salesforce directory
-            salesforce_dir = self.config.root_dir / "salesforce"
-            if not salesforce_dir.exists():
-                raise SalesforceError(f"Salesforce directory not found: {salesforce_dir}")
-            
-            # Update integration user definition file with contact email
-            integration_user_file = self.config.root_dir / self.config.salesforce.integration_user_def
-            if not integration_user_file.exists():
-                raise SalesforceError(f"Integration user definition file not found: {integration_user_file}")
-            
-            # Read and update the integration user definition
-            self._update_integration_user_file(integration_user_file, contact_email)
-            
-            # Get org instance URL and update the username domain
-            instance_url = self._get_org_instance_url(salesforce_dir)
-            if instance_url:
-                self._update_username_domain(integration_user_file, instance_url)
-            
             with Progress(
                 SpinnerColumn(),
                 TextColumn("[progress.description]{task.description}"),
@@ -96,25 +96,25 @@ class CreateIntegrationUserCommand(BaseCommand):
                 ]
                 
                 try:
-                    result = self.shell.execute(command, cwd=salesforce_dir, capture_output=True)
+                    result = self.shell.execute(command, cwd=salesforce_dir, capture_output=False)
                     progress.update(task, description="Integration user created successfully!")
-                except Exception as cmd_error:
+                except Exception as debug_error:
                     # Display the command output for debugging
                     self.console.print(f"[red]❌ Command failed: {' '.join(command)}[/red]")
                     
                     # Try to get the actual command output from the shell executor
-                    if hasattr(cmd_error, 'args') and len(cmd_error.args) > 0:
-                        error_msg = str(cmd_error.args[0])
+                    if hasattr(debug_error, 'args') and len(debug_error.args) > 0:
+                        error_msg = str(debug_error.args[0])
                         self.console.print(f"[red]Error details:[/red]")
                         self.console.print(f"[red]{error_msg}[/red]")
                     
                     # Also try to get stderr/stdout if available
-                    if hasattr(cmd_error, 'stderr') and cmd_error.stderr:
+                    if hasattr(debug_error, 'stderr') and debug_error.stderr:
                         self.console.print(f"[red]Error output:[/red]")
-                        self.console.print(f"[red]{cmd_error.stderr}[/red]")
-                    if hasattr(cmd_error, 'stdout') and cmd_error.stdout:
+                        self.console.print(f"[red]{debug_error.stderr}[/red]")
+                    if hasattr(debug_error, 'stdout') and debug_error.stdout:
                         self.console.print(f"[yellow]Standard output:[/yellow]")
-                        self.console.print(f"[yellow]{cmd_error.stdout}[/yellow]")
+                        self.console.print(f"[yellow]{debug_error.stdout}[/yellow]")
                     
                     # Try to execute the command again without capture_output to see the actual error
                     self.console.print(f"[yellow]Executing command again to show full output...[/yellow]")

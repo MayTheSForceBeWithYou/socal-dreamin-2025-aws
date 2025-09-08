@@ -79,6 +79,8 @@ class ShellExecutor:
             
         except subprocess.CalledProcessError as e:
             error_msg = f"Command failed with exit code {e.returncode}: {' '.join(command)}"
+            if e.stdout:
+                error_msg += f"\nStandard output: {e.stdout}"
             if e.stderr:
                 error_msg += f"\nError output: {e.stderr}"
             raise ShellExecutionError(error_msg)
