@@ -19,7 +19,7 @@ from rich.table import Table
 from rich.prompt import Confirm
 
 # Add the project root to Python path
-project_root = Path(__file__).parent.parent
+project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from setup_tools.core.config import get_config

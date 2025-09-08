@@ -145,9 +145,9 @@ class TerraformVarsSetup:
             tfvars_content = tfvars_content.replace("your-connected-app-consumer-key", salesforce_client_id)
             tfvars_content = tfvars_content.replace("your-salesforce-username@your-domain.com", salesforce_username)
             
-            # Replace the private key placeholder with actual content
-            private_key_pattern = r'salesforce_private_key = """\s*\n-----BEGIN PRIVATE KEY-----\s*\n.*?\n-----END PRIVATE KEY-----\s*\n"""'
-            private_key_replacement = f'salesforce_private_key = """\n{salesforce_private_key}\n"""'
+            # Replace the private key placeholder with actual content using heredoc syntax
+            private_key_pattern = r'salesforce_private_key = <<EOF\s*\n-----BEGIN PRIVATE KEY-----\s*\n.*?\n-----END PRIVATE KEY-----\s*\nEOF'
+            private_key_replacement = f'salesforce_private_key = <<EOF\n{salesforce_private_key}\nEOF'
             tfvars_content = re.sub(private_key_pattern, private_key_replacement, tfvars_content, flags=re.DOTALL)
             
             # Write tfvars file

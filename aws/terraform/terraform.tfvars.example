@@ -32,8 +32,8 @@ salesforce_username = "your-salesforce-username@your-domain.com"
 # Replace with your actual private key (PEM format)
 # This should be the private key that corresponds to the public key
 # uploaded to your Salesforce Connected App
-salesforce_private_key = """
+salesforce_private_key = <<EOF
 -----BEGIN PRIVATE KEY-----
 MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC...
 -----END PRIVATE KEY-----
-"""
+EOF
