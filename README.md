@@ -111,13 +111,13 @@ cd socal-dreamin-2025-aws
 3. **Complete Salesforce setup (one command):**
    ```bash
    # This will create scratch org, certificates, Connected App, and integration user
-   python -m setup_tools.main salesforce setup-complete --contact-email your-email@example.com --environment demo
+   python -m setup_tools salesforce setup-complete --contact-email your-email@example.com --environment demo
    ```
 
 4. **Set up Terraform variables:**
    ```bash
    # This will prompt for AWS configuration and populate terraform.tfvars
-   python -m setup_tools.main infrastructure setup-terraform-vars --environment demo
+   python -m setup_tools infrastructure setup-terraform-vars --environment demo
    ```
 
 5. **Configure Salesforce credentials:**
@@ -128,7 +128,7 @@ cd socal-dreamin-2025-aws
 
 ```bash
 # Deploy complete lab with validation
-python -m setup_tools.main infrastructure deploy-complete-lab --environment demo --validate
+python -m setup_tools infrastructure deploy-complete-lab --environment demo --validate
 ```
 
 This single command will:
@@ -225,12 +225,12 @@ python -m setup_tools validation validate-lab --component <component>
 **Common Issues & Solutions:**
 
 1. **Prerequisites Validation Failures**:
-   - **SSH Key Missing**: Run `python -m setup_tools.main aws generate-certificate --key-name aws-ec2`
+   - **SSH Key Missing**: Run `python -m setup_tools aws generate-certificate --key-name aws-ec2`
    - **Salesforce Config Missing**: Copy `aws/sfdc-auth-secrets.json.example` to `aws/sfdc-auth-secrets.json` and configure
-   - **Terraform Variables Missing**: Run `python -m setup_tools.main infrastructure setup-terraform-vars --environment demo`
+   - **Terraform Variables Missing**: Run `python -m setup_tools infrastructure setup-terraform-vars --environment demo`
    - **AWS CLI Not Configured**: Run `aws configure` with your credentials
    - **Salesforce CLI Not Found**: Install Salesforce CLI from https://developer.salesforce.com/tools/sfdxcli
-   - **Salesforce Certificate Missing**: Run `python -m setup_tools.main salesforce generate-certificate` first
+   - **Salesforce Certificate Missing**: Run `python -m setup_tools salesforce generate-certificate` first
 
 2. **OpenSearch Authentication**: Use the Python proxy server method
 3. **EC2 Connection**: Check SSH key permissions and security groups  
