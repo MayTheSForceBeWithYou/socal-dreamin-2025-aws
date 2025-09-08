@@ -101,12 +101,29 @@ class CreateIntegrationUserCommand(BaseCommand):
                 except Exception as cmd_error:
                     # Display the command output for debugging
                     self.console.print(f"[red]❌ Command failed: {' '.join(command)}[/red]")
+                    
+                    # Try to get the actual command output from the shell executor
+                    if hasattr(cmd_error, 'args') and len(cmd_error.args) > 0:
+                        error_msg = str(cmd_error.args[0])
+                        self.console.print(f"[red]Error details:[/red]")
+                        self.console.print(f"[red]{error_msg}[/red]")
+                    
+                    # Also try to get stderr/stdout if available
                     if hasattr(cmd_error, 'stderr') and cmd_error.stderr:
                         self.console.print(f"[red]Error output:[/red]")
                         self.console.print(f"[red]{cmd_error.stderr}[/red]")
                     if hasattr(cmd_error, 'stdout') and cmd_error.stdout:
                         self.console.print(f"[yellow]Standard output:[/yellow]")
                         self.console.print(f"[yellow]{cmd_error.stdout}[/yellow]")
+                    
+                    # Try to execute the command again without capture_output to see the actual error
+                    self.console.print(f"[yellow]Executing command again to show full output...[/yellow]")
+                    try:
+                        self.shell.execute(command, cwd=salesforce_dir, capture_output=False)
+                    except Exception as debug_error:
+                        self.console.print(f"[red]Full error output:[/red]")
+                        self.console.print(f"[red]{debug_error}[/red]")
+                    
                     raise SalesforceError(f"Failed to create integration user: {cmd_error}")
             
             # Get the created user information

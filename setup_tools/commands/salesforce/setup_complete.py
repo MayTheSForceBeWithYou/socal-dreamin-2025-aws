@@ -96,6 +96,12 @@ class SetupCompleteSalesforceCommand(BaseCommand):
             user_result = user_command.execute(contact_email=contact_email)
             results['integration_user'] = user_result
             
+            # Check if user creation was successful or skipped (user already exists)
+            if not user_result.get('success', False):
+                # If user creation failed and it wasn't skipped, this is a real error
+                if not user_result.get('skipped', False):
+                    raise SalesforceError(f"Failed to create integration user: {user_result.get('error', 'Unknown error')}")
+            
             # Check if all steps were successful
             all_successful = all(result.get('success', False) for result in results.values())
             

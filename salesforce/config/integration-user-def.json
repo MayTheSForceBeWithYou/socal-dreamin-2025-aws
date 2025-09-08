@@ -1,5 +1,5 @@
 {
-    "Username": "aws_integration_user@replace.with.instance.domain",
+    "Username": "aws_int@replace.with.instance.domain",
     "FirstName": "AWS",
     "LastName": "Integration",
     "Alias": "awsint",
