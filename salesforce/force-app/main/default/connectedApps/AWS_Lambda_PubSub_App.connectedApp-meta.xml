@@ -7,6 +7,7 @@
         <certificate>FROM_salesforce/certs/aws-to-sf-cert_WITHOUT_BEGIN_OR_END_LINES</certificate>
         <!--consumerKey>RETRIEVED_FROM_SALESFORCE</consumerKey-->
         <isAdminApproved>false</isAdminApproved>
+        <isAdminApproved>true</isAdminApproved>
         <isClientCredentialEnabled>false</isClientCredentialEnabled>
         <isCodeCredentialEnabled>false</isCodeCredentialEnabled>
         <isCodeCredentialPostOnly>false</isCodeCredentialPostOnly>
@@ -26,4 +27,6 @@
         <isTokenExchangeFlowEnabled>false</isTokenExchangeFlowEnabled>
         <refreshTokenPolicy>infinite</refreshTokenPolicy>
     </oauthPolicy>
+    <permissionSetName>Real-Time Event Monitoring Admin</permissionSetName>
+    <permissionSetName>Real-Time Event Monitoring Integration</permissionSetName>
 </ConnectedApp>

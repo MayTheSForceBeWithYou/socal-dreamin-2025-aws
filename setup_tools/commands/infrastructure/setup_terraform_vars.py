@@ -159,10 +159,11 @@ class TerraformVarsSetup:
             # Display next steps
             console.print(Panel(
                 "Next Steps:\n"
-                "1. Edit aws/sfdc-auth-secrets.json with your Salesforce credentials\n"
-                "2. Run: python -m setup_tools.main infrastructure deploy-complete-lab --environment demo --validate\n"
-                "3. The deployment will create all AWS resources\n"
-                "4. Note: Salesforce private key has been automatically populated in terraform.tfvars",
+                "1. Run `cp aws/sfdc-auth-secrets.json.example aws/sfdc-auth-secrets.json`\n"
+                "2. Edit aws/sfdc-auth-secrets.json with your Salesforce credentials\n"
+                "3. Run: `python -m setup_tools.main infrastructure deploy-complete-lab --environment demo --validate`\n"
+                "4. The deployment will create all AWS resources\n"
+                "5. Note: Salesforce private key has been automatically populated in terraform.tfvars",
                 title="📋 Next Steps",
                 border_style="green"
             ))

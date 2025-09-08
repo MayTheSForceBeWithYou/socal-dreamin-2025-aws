@@ -39,7 +39,7 @@ sudo chown salesforce-streamer:salesforce-streamer /opt/salesforce-streamer
 # Copy application files
 sudo cp /tmp/ec2-app/*.py /opt/salesforce-streamer/
 sudo cp /tmp/ec2-app/requirements.txt /opt/salesforce-streamer/
-sudo cp /tmp/ec2-app/salesforce-streamer.service /etc/systemd/system/
+sudo cp /tmp/ec2-app/systemd/salesforce-streamer.service /etc/systemd/system/
 
 # Create environment file
 sudo tee /opt/salesforce-streamer/.env > /dev/null << ENVEOF
