@@ -84,3 +84,4 @@ secrets/
 *.secret
 .env.local
 .env.production
+sfdc-auth-secrets.json
