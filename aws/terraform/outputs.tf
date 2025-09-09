@@ -33,6 +33,11 @@ output "salesforce_instance_url" {
   value       = var.salesforce_instance_url
 }
 
+output "opensearch_master_user" {
+  description = "OpenSearch master user name"
+  value       = module.opensearch.master_user
+}
+
 output "opensearch_master_password" {
   description = "OpenSearch master user password"
   value       = module.opensearch.master_password

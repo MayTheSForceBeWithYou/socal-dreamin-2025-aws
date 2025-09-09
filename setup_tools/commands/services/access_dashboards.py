@@ -66,7 +66,7 @@ class OpenSearchDashboardAccess:
     def test_direct_access(self, endpoint: str, password: str) -> bool:
         """Test direct browser access to OpenSearch Dashboards."""
         try:
-            credentials = f"admin:{password}"
+            credentials = f"os_admin:{password}"
             encoded_credentials = base64.b64encode(credentials.encode()).decode()
             
             response = requests.get(
@@ -108,7 +108,7 @@ class OpenSearchDashboardAccess:
                 return False
             
             # Test OpenSearch access from EC2
-            credentials = f"admin:{password}"
+            credentials = f"os_admin:{password}"
             encoded_credentials = base64.b64encode(credentials.encode()).decode()
             
             result = subprocess.run(
@@ -117,7 +117,7 @@ class OpenSearchDashboardAccess:
                     "-o", "StrictHostKeyChecking=no",
                     "-o", "ConnectTimeout=10",
                     f"ec2-user@{ec2_ip}",
-                    f"curl -s -u admin:{password} https://{endpoint}/"
+                    f"curl -s -u os_admin:{password} https://{endpoint}/"
                 ],
                 capture_output=True,
                 text=True,
@@ -155,7 +155,7 @@ echo "OpenSearch Endpoint: $OPENSEARCH_ENDPOINT"
 echo "Dashboard URL: https://$OPENSEARCH_ENDPOINT/_dashboards/"
 echo ""
 echo "📝 Login Credentials:"
-echo "Username: admin"
+echo "Username: os_admin"
 echo "Password: $OPENSEARCH_PASSWORD"
 echo ""
 
@@ -174,7 +174,7 @@ if direct_access:
     echo "1. Open your browser"
     echo "2. Go to: https://$OPENSEARCH_ENDPOINT/_dashboards/"
     echo "3. Login with:"
-    echo "   Username: admin"
+    echo "   Username: os_admin"
     echo "   Password: $OPENSEARCH_PASSWORD"
     echo "4. You should see the OpenSearch Dashboards interface"
     echo ""
@@ -195,7 +195,7 @@ if ssh_access:
     echo "3. In your browser, go to: https://localhost:9200/_dashboards/"
     echo ""
     echo "4. Login with:"
-    echo "   Username: admin"
+    echo "   Username: os_admin"
     echo "   Password: $OPENSEARCH_PASSWORD"
     echo ""
 else:
@@ -293,7 +293,7 @@ echo ""
         # Display credentials
         console.print(Panel(
             f"Login Credentials:\n"
-            f"Username: admin\n"
+            f"Username: os_admin\n"
             f"Password: {password}",
             title="🔐 Authentication",
             border_style="green"

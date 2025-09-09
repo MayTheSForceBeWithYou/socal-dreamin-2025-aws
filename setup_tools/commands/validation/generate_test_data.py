@@ -157,7 +157,7 @@ class TestDataGenerator:
     def index_events_to_opensearch(self, events: List[Dict], endpoint: str, password: str) -> bool:
         """Index events to OpenSearch."""
         try:
-            credentials = f"admin:{password}"
+            credentials = f"os_admin:{password}"
             encoded_credentials = base64.b64encode(credentials.encode()).decode()
             
             headers = {
@@ -207,7 +207,7 @@ class TestDataGenerator:
     def create_index_template(self, endpoint: str, password: str) -> bool:
         """Create index template for Salesforce login events."""
         try:
-            credentials = f"admin:{password}"
+            credentials = f"os_admin:{password}"
             encoded_credentials = base64.b64encode(credentials.encode()).decode()
             
             headers = {
@@ -340,7 +340,7 @@ def generate_test_data(count: int, create_template: bool):
             f"Generated: {count} login events\n"
             f"Index: salesforce-login-events\n"
             f"Dashboard: https://{endpoint}/_dashboards/\n"
-            f"Username: admin\n"
+            f"Username: os_admin\n"
             f"Password: {password}",
             title="✅ Success",
             border_style="green"

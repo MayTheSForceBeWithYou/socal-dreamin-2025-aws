@@ -1,25 +1,28 @@
 #!/usr/bin/env python3
 """
-OpenSearch Browser Proxy - Handles AWS SigV4 authentication for browser access
+OpenSearch User Proxy - Handles OpenSearch user authentication for browser access
 """
 
-import boto3
 import requests
-from botocore.auth import SigV4Auth
-from botocore.awsrequest import AWSRequest
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import urllib.parse
 import json
 import sys
 import os
+import base64
 from datetime import datetime
+from pathlib import Path
+import subprocess
 
-class OpenSearchProxyHandler(BaseHTTPRequestHandler):
-    def __init__(self, opensearch_endpoint, region, *args, **kwargs):
+class OpenSearchUserProxyHandler(BaseHTTPRequestHandler):
+    def __init__(self, opensearch_endpoint, username, password, *args, **kwargs):
         self.opensearch_endpoint = opensearch_endpoint.rstrip('/')
-        self.region = region
-        self.session = boto3.Session()
-        self.credentials = self.session.get_credentials()
+        self.username = username
+        self.password = password
+        # Create basic auth header
+        credentials = f"{username}:{password}"
+        encoded_credentials = base64.b64encode(credentials.encode()).decode()
+        self.auth_header = f"Basic {encoded_credentials}"
         super().__init__(*args, **kwargs)
     
     def do_GET(self):
@@ -55,33 +58,18 @@ class OpenSearchProxyHandler(BaseHTTPRequestHandler):
             if content_length > 0:
                 body = self.rfile.read(content_length)
             
-            # Create minimal headers for AWS signing
-            # Only include headers that AWS expects and are necessary
-            headers_for_signing = {
-                'host': self.opensearch_endpoint.replace('https://', '').replace('http://', ''),
+            # Prepare headers for the request
+            headers = {
+                'Authorization': self.auth_header,
+                'Content-Type': self.headers.get('content-type', 'application/json'),
                 'osd-xsrf': 'true'
             }
             
-            # Add content-type if body is present
-            if body and self.headers.get('content-type'):
-                headers_for_signing['content-type'] = self.headers.get('content-type')
-            
-            # Create AWS request for signing
-            aws_request = AWSRequest(
-                method=method, 
-                url=target_url, 
-                data=body,
-                headers=headers_for_signing
-            )
-            
-            # Sign the request
-            SigV4Auth(self.credentials, 'es', self.region).add_auth(aws_request)
-            
-            # Make the actual request with only the signed headers
+            # Make the actual request with OpenSearch user authentication
             response = requests.request(
                 method=method,
                 url=target_url,
-                headers=dict(aws_request.headers),
+                headers=headers,
                 data=body,
                 timeout=30,
                 verify=True,
@@ -145,39 +133,75 @@ class OpenSearchProxyHandler(BaseHTTPRequestHandler):
         timestamp = datetime.now().isoformat()
         print(f"{timestamp} {format % args}")
 
-def main():
-    if len(sys.argv) < 3:
-        print("Usage: python3 opensearch-browser-proxy.py <opensearch_endpoint> <port> [region]")
-        print("Example: python3 opensearch-browser-proxy.py https://search-domain.us-west-1.es.amazonaws.com 8080 us-west-1")
-        sys.exit(1)
-    
-    opensearch_endpoint = sys.argv[1]
-    port = int(sys.argv[2])
-    region = sys.argv[3] if len(sys.argv) > 3 else 'us-west-1'
-    
-    # Validate AWS credentials
+def get_terraform_output(output_name):
+    """Get a Terraform output value."""
     try:
-        session = boto3.Session()
-        credentials = session.get_credentials()
-        if not credentials:
-            print("ERROR: No AWS credentials found. Please configure your AWS credentials.")
-            print("You can use: aws configure, environment variables, or IAM roles")
-            sys.exit(1)
-        print(f"Using AWS credentials for user/role: {session.get_credentials().access_key}")
+        # Change to terraform directory
+        terraform_dir = Path(__file__).parent.parent / "aws" / "terraform"
+
+        # Get the output value
+        result = subprocess.run(
+            ["terraform", "output", "-raw", output_name],
+            cwd=terraform_dir,
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+
+        if result.returncode == 0:
+            return result.stdout.strip()
+        else:
+            print(f"❌ Failed to get Terraform output '{output_name}': {result.stderr}")
+            return None
+
     except Exception as e:
-        print(f"ERROR: Failed to get AWS credentials: {e}")
+        print(f"❌ Error getting Terraform output '{output_name}': {e}")
+        return None
+
+def main():
+    if len(sys.argv) < 2 or sys.argv[1] in ['--help', '-h']:
+        print("Usage: python3 opensearch-user-proxy.py <port> [username] [password]")
+        print("Example: python3 opensearch-user-proxy.py 8080")
+        print("If username/password not provided, will get from Terraform outputs")
+        sys.exit(0)
+    
+    port = int(sys.argv[1])
+    
+    # Get OpenSearch endpoint from Terraform outputs
+    opensearch_endpoint = get_terraform_output("opensearch_endpoint")
+    if not opensearch_endpoint:
+        print("❌ Could not get OpenSearch endpoint from Terraform outputs")
+        print("Make sure Terraform has been applied successfully")
         sys.exit(1)
     
-    print(f"Starting OpenSearch Browser Proxy...")
+    # Ensure endpoint has https:// scheme
+    if not opensearch_endpoint.startswith("https://"):
+        opensearch_endpoint = f"https://{opensearch_endpoint}"
+    
+    # Get username and password
+    if len(sys.argv) >= 4:
+        username = sys.argv[2]
+        password = sys.argv[3]
+    else:
+        # Get from Terraform outputs
+        username = get_terraform_output("opensearch_master_user")
+        password = get_terraform_output("opensearch_master_password")
+        
+        if not username or not password:
+            print("❌ Could not get OpenSearch credentials from Terraform outputs")
+            print("Make sure Terraform has been applied successfully")
+            sys.exit(1)
+    
+    print(f"Starting OpenSearch User Proxy...")
     print(f"OpenSearch Endpoint: {opensearch_endpoint}")
-    print(f"AWS Region: {region}")
+    print(f"Username: {username}")
     print(f"Proxy Port: {port}")
     print(f"Browser URL: http://localhost:{port}/_dashboards/")
     print("Press Ctrl+C to stop")
     print("-" * 50)
     
-    # Create handler class with endpoint and region
-    handler = lambda *args, **kwargs: OpenSearchProxyHandler(opensearch_endpoint, region, *args, **kwargs)
+    # Create handler class with endpoint and credentials
+    handler = lambda *args, **kwargs: OpenSearchUserProxyHandler(opensearch_endpoint, username, password, *args, **kwargs)
     
     # Start server
     server = HTTPServer(('localhost', port), handler)

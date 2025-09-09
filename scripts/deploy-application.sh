@@ -68,6 +68,10 @@ sudo systemctl status salesforce-streamer
 EOF
 
 echo "Application deployment completed!"
-echo "SSH to instance: ssh -i $PROJECT_ROOT/aws/certs/aws-ec2 ec2-user@$EC2_IP"
-echo "Check logs: sudo journalctl -u salesforce-streamer -f"
-echo "Check service status: sudo systemctl status salesforce-streamer"
+echo ""
+echo "Next steps:"
+echo "1. SSH to instance: ssh -i $PROJECT_ROOT/aws/certs/aws-ec2 ec2-user@$EC2_IP"
+echo "2. Check logs: sudo journalctl -u salesforce-streamer -f"
+echo "3. Check service status: sudo systemctl status salesforce-streamer"
+echo "4. Setup OpenSearch user: python3 $PROJECT_ROOT/scripts/setup-opensearch-user.py"
+echo "5. Access OpenSearch Dashboards: https://$OPENSEARCH_ENDPOINT/_dashboards/"

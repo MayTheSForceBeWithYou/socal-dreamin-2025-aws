@@ -219,7 +219,7 @@ sudo pip3 install -r requirements.txt
 
 2. **Test connection**:
    ```bash
-   curl -u admin:<password> https://<endpoint>/
+   curl -u os_admin:<password> https://<endpoint>/
    ```
 
 3. **Check advanced security settings**:
@@ -312,7 +312,7 @@ The application uses `LoginHistory` instead of `LoginEventStream`. This is corre
 
 1. **Check if index exists**:
    ```bash
-   curl -u admin:<password> https://<endpoint>/salesforce-login-events
+   curl -u os_admin:<password> https://<endpoint>/salesforce-login-events
    ```
 
 2. **Verify data flow**:
@@ -389,12 +389,12 @@ The application uses `LoginHistory` instead of `LoginEventStream`. This is corre
 
 1. **Check cluster health**:
    ```bash
-   curl -u admin:<password> https://<endpoint>/_cluster/health
+   curl -u os_admin:<password> https://<endpoint>/_cluster/health
    ```
 
 2. **Monitor resource usage**:
    ```bash
-   curl -u admin:<password> https://<endpoint>/_nodes/stats
+   curl -u os_admin:<password> https://<endpoint>/_nodes/stats
    ```
 
 3. **Scale up instance**:
@@ -442,7 +442,7 @@ The application uses `LoginHistory` instead of `LoginEventStream`. This is corre
    ssh -i aws/certs/aws-ec2 ec2-user@<EC2_IP>
    
    # Check OpenSearch
-   curl -u admin:<password> https://<endpoint>/
+   curl -u os_admin:<password> https://<endpoint>/
    ```
 
 3. **Review logs**:
@@ -482,7 +482,7 @@ python -m setup_tools validation validate-lab --comprehensive
 ssh -i aws/certs/aws-ec2 ec2-user@<EC2_IP> "sudo systemctl restart salesforce-streamer"
 
 # Test OpenSearch
-curl -u admin:<password> https://<endpoint>/
+curl -u os_admin:<password> https://<endpoint>/
 
 # Generate test data
 python -m setup_tools validation generate-test-data --count 100

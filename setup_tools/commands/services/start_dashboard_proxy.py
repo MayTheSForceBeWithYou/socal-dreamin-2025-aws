@@ -202,7 +202,7 @@ def get_opensearch_credentials() -> tuple[str, str]:
 @click.command()
 @click.option('--port', default=8080, help='Port for the proxy server')
 @click.option('--endpoint', help='OpenSearch endpoint (auto-detected if not provided)')
-@click.option('--username', default='admin', help='OpenSearch username')
+@click.option('--username', default='os_admin', help='OpenSearch username')
 @click.option('--password', help='OpenSearch password (auto-detected if not provided)')
 def start_dashboard_proxy(port: int, endpoint: Optional[str], username: str, password: Optional[str]):
     """Start OpenSearch Dashboard proxy server."""

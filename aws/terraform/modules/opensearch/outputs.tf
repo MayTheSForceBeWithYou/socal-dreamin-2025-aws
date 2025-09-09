@@ -13,6 +13,11 @@ output "domain_arn" {
   value       = aws_opensearch_domain.main.arn
 }
 
+output "master_user" {
+  description = "OpenSearch master user name"
+  value       = "os_admin"
+}
+
 output "master_password" {
   description = "OpenSearch master user password"
   value       = random_password.opensearch_password.result

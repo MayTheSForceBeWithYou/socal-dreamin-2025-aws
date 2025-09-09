@@ -370,7 +370,7 @@ def infrastructure_setup_terraform_vars(ctx, environment, config):
 @services.command('start-dashboard-proxy')
 @click.option('--port', default=8080, help='Port for the proxy server')
 @click.option('--endpoint', help='OpenSearch endpoint (auto-detected if not provided)')
-@click.option('--username', default='admin', help='OpenSearch username')
+@click.option('--username', default='os_admin', help='OpenSearch username')
 @click.option('--password', help='OpenSearch password (auto-detected if not provided)')
 @click.pass_context
 def services_start_dashboard_proxy(ctx, port, endpoint, username, password):

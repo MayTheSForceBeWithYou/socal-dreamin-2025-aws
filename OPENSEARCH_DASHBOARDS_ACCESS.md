@@ -4,13 +4,17 @@ This guide explains how to access your OpenSearch Dashboards for the Salesforce 
 
 ## 🚀 Quick Start
 
-The **easiest way** to access OpenSearch Dashboards is through the AWS Console:
+The **easiest way** to access OpenSearch Dashboards with proper authentication is using the User Proxy:
 
+1. Run: `./scripts/start-user-proxy.sh`
+2. Open browser: `http://localhost:8080/_dashboards/`
+3. You'll be authenticated as the OpenSearch user (os_admin/password)
+
+**Alternative**: Use AWS Console for AWS IAM authentication:
 1. Go to [AWS Console](https://console.aws.amazon.com/)
 2. Navigate to **OpenSearch** service
 3. Find your domain: `salesforce-opensearch-lab-os`
 4. Click **"OpenSearch Dashboards URL"**
-5. You'll be automatically authenticated with your AWS credentials
 
 ## 📋 Prerequisites
 
@@ -20,7 +24,24 @@ The **easiest way** to access OpenSearch Dashboards is through the AWS Console:
 
 ## 🔧 Access Methods
 
-### Method 1: AWS Console (Recommended)
+### Method 1: User Proxy (Recommended for Browser Access)
+
+**Pros:** Proper OpenSearch user authentication, works in any browser, no AWS Console needed
+**Cons:** Requires running a local proxy
+
+1. **Start the user proxy**:
+   ```bash
+   cd /Users/nate/dev/socal-dreamin-2025-aws
+   ./scripts/start-user-proxy.sh
+   ```
+
+2. **Keep the proxy terminal open** (don't close it)
+
+3. **Open browser** and go to: `http://localhost:8080/_dashboards/`
+
+4. **You're authenticated!** The proxy handles OpenSearch user authentication automatically
+
+### Method 2: AWS Console (Alternative)
 
 **Pros:** Easiest, automatic authentication, no setup required
 **Cons:** Requires AWS Console access
@@ -31,7 +52,7 @@ The **easiest way** to access OpenSearch Dashboards is through the AWS Console:
 4. Click the **"OpenSearch Dashboards URL"** button
 5. You'll be redirected to Dashboards with full access
 
-### Method 2: SSH Tunnel + Browser
+### Method 3: SSH Tunnel + Browser
 
 **Pros:** Direct access, good for development
 **Cons:** Requires SSH tunnel setup, browser authentication issues
@@ -50,7 +71,7 @@ The **easiest way** to access OpenSearch Dashboards is through the AWS Console:
 
 5. **Authentication issue**: You'll see "User: anonymous is not authorized" - this is expected because browsers can't authenticate with AWS IAM directly
 
-### Method 3: CLI Access (For Testing)
+### Method 4: CLI Access (For Testing)
 
 **Pros:** Good for testing connectivity and API calls
 **Cons:** Command-line only, not for Dashboards UI
@@ -70,7 +91,7 @@ The **easiest way** to access OpenSearch Dashboards is through the AWS Console:
    python3 /opt/salesforce-streamer/test-opensearch-iam.py
    ```
 
-### Method 4: Programmatic Access
+### Method 5: Programmatic Access
 
 **Pros:** Full API access, good for automation
 **Cons:** Requires Python/curl knowledge
@@ -135,6 +156,6 @@ If you encounter issues:
 
 ---
 
-**Recommendation**: Start with Method 1 (AWS Console) for the easiest access to OpenSearch Dashboards.
+**Recommendation**: Start with Method 1 (User Proxy) for the easiest browser access with proper OpenSearch user authentication.
 
 

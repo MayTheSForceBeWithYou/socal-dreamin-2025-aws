@@ -175,7 +175,7 @@ bash scripts/deploy-application.sh
 1. Open browser
 2. Go to: `https://<opensearch-endpoint>/_dashboards/`
 3. Login with:
-   - Username: `admin`
+   - Username: `os_admin`
    - Password: `<opensearch-master-password>`
 
 ### Method 2: Python Proxy Server
@@ -272,7 +272,7 @@ ssh -i aws/certs/aws-ec2 ec2-user@<EC2_IP>
 sudo journalctl -u salesforce-streamer -f
 
 # Test OpenSearch connection
-curl -u admin:<password> https://<endpoint>/
+curl -u os_admin:<password> https://<endpoint>/
 
 # Validate specific component
 python -m setup_tools validation validate-lab --component <component>

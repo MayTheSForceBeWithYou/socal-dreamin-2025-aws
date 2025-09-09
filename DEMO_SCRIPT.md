@@ -78,7 +78,7 @@ ssh -i aws/certs/aws-ec2 ec2-user@<EC2_IP> "sudo systemctl status salesforce-str
 ssh -i aws/certs/aws-ec2 ec2-user@<EC2_IP> "sudo journalctl -u salesforce-streamer --since '10 minutes ago' --no-pager"
 
 # Show data in OpenSearch
-curl -u admin:<password> https://<endpoint>/salesforce-login-events/_count
+curl -u os_admin:<password> https://<endpoint>/salesforce-login-events/_count
 ```
 
 **Key Points**:
@@ -101,7 +101,7 @@ python -m setup_tools services access-dashboards --open-browser
 
 1. **Login to Dashboards**
    - URL: `https://<opensearch-endpoint>/_dashboards/`
-   - Username: `admin`
+   - Username: `os_admin`
    - Password: `<opensearch-master-password>`
 
 2. **Create Index Pattern**
@@ -139,10 +139,10 @@ python -m setup_tools services access-dashboards --open-browser
 **Script**:
 ```bash
 # Show cluster health
-curl -u admin:<password> https://<endpoint>/_cluster/health
+curl -u os_admin:<password> https://<endpoint>/_cluster/health
 
 # Show index statistics
-curl -u admin:<password> https://<endpoint>/salesforce-login-events/_stats
+curl -u os_admin:<password> https://<endpoint>/salesforce-login-events/_stats
 
 # Show application metrics
 ssh -i aws/certs/aws-ec2 ec2-user@<EC2_IP> "sudo systemctl show salesforce-streamer --property=ActiveState,SubState"
@@ -207,7 +207,7 @@ python -m setup_tools infrastructure deploy-complete-lab --dry-run
 
 # Show data
 echo "2. Data pipeline active"
-curl -u admin:<password> https://<endpoint>/salesforce-login-events/_count
+curl -u os_admin:<password> https://<endpoint>/salesforce-login-events/_count
 
 # Show dashboards
 echo "3. OpenSearch Dashboards available"

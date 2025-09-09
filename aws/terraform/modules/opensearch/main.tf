@@ -50,7 +50,7 @@ resource "aws_opensearch_domain" "main" {
     enabled                        = true
     internal_user_database_enabled = true
     master_user_options {
-      master_user_name = "admin"
+      master_user_name = "os_admin"
       master_user_password = random_password.opensearch_password.result
     }
   }
@@ -82,7 +82,7 @@ resource "aws_opensearch_domain" "main" {
   }
 }
 
-# Random password for OpenSearch admin user
+# Random password for OpenSearch os_admin user
 resource "random_password" "opensearch_password" {
   length  = 32
   special = true

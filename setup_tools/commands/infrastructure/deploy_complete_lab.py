@@ -295,6 +295,12 @@ class LabDeploymentManager:
             console.print("[red]❌ OpenSearch endpoint not found[/red]")
             return False
         
+        # Run OpenSearch user setup
+        console.print("Setting up OpenSearch user credentials...")
+        if not self._setup_opensearch_user():
+            console.print("[red]❌ Failed to setup OpenSearch user[/red]")
+            return False
+        
         # Create dashboard access script
         self._create_dashboard_access_script(opensearch_endpoint, opensearch_password)
         
@@ -319,7 +325,7 @@ echo "OpenSearch Endpoint: $OPENSEARCH_ENDPOINT"
 echo "Dashboard URL: https://$OPENSEARCH_ENDPOINT/_dashboards/"
 echo ""
 echo "📝 Login Credentials:"
-echo "Username: admin"
+echo "Username: os_admin"
 echo "Password: $OPENSEARCH_PASSWORD"
 echo ""
 echo "🚀 Access Methods:"
@@ -329,13 +335,13 @@ echo "-------------------------------"
 echo "1. Open your browser"
 echo "2. Go to: https://$OPENSEARCH_ENDPOINT/_dashboards/"
 echo "3. Login with:"
-echo "   Username: admin"
+echo "   Username: os_admin"
 echo "   Password: $OPENSEARCH_PASSWORD"
 echo ""
 echo "Method 2: Test Connection"
 echo "-------------------------"
 echo "Test the connection:"
-echo "curl -u admin:$OPENSEARCH_PASSWORD https://$OPENSEARCH_ENDPOINT/"
+echo "curl -u os_admin:$OPENSEARCH_PASSWORD https://$OPENSEARCH_ENDPOINT/"
 echo ""
 echo "📊 Once logged in, you can:"
 echo "- View indexed Salesforce login events"
@@ -351,6 +357,41 @@ echo ""
         
         # Make executable
         os.chmod(script_path, 0o755)
+    
+    def _setup_opensearch_user(self) -> bool:
+        """Run the OpenSearch user setup script."""
+        try:
+            setup_script = self.project_root / "scripts" / "setup-opensearch-user.py"
+            if not setup_script.exists():
+                console.print(f"[red]❌ OpenSearch setup script not found: {setup_script}[/red]")
+                return False
+            
+            console.print("Running OpenSearch user setup...")
+            result = subprocess.run(
+                ["python3", str(setup_script)],
+                cwd=self.project_root,
+                capture_output=True,
+                text=True,
+                timeout=60
+            )
+            
+            if result.returncode == 0:
+                console.print("[green]✅ OpenSearch user setup completed successfully[/green]")
+                if result.stdout:
+                    console.print(result.stdout)
+                return True
+            else:
+                console.print(f"[red]❌ OpenSearch user setup failed: {result.stderr}[/red]")
+                if result.stdout:
+                    console.print(f"[yellow]Output: {result.stdout}[/yellow]")
+                return False
+                
+        except subprocess.TimeoutExpired:
+            console.print("[red]❌ OpenSearch user setup timed out[/red]")
+            return False
+        except Exception as e:
+            console.print(f"[red]❌ OpenSearch user setup failed: {e}[/red]")
+            return False
     
     def validate_deployment(self) -> bool:
         """Validate the complete deployment."""
@@ -422,7 +463,7 @@ echo ""
         try:
             result = subprocess.run(
                 [
-                    "curl", "-s", "-u", f"admin:{password}",
+                    "curl", "-s", "-u", f"os_admin:{password}",
                     f"https://{endpoint}/"
                 ],
                 capture_output=True,
@@ -469,7 +510,7 @@ echo ""
             # Check if there's data in the index
             result = subprocess.run(
                 [
-                    "curl", "-s", "-u", f"admin:{password}",
+                    "curl", "-s", "-u", f"os_admin:{password}",
                     f"https://{endpoint}/salesforce-login-events/_count"
                 ],
                 capture_output=True,
@@ -507,7 +548,7 @@ echo ""
         if password:
             console.print(Panel(
                 f"OpenSearch Login Credentials:\n"
-                f"Username: admin\n"
+                f"Username: os_admin\n"
                 f"Password: {password}",
                 title="🔐 Dashboard Access",
                 border_style="green"

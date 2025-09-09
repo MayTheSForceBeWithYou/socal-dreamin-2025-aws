@@ -149,7 +149,7 @@ class LabValidator:
         
         try:
             # Test basic connectivity
-            credentials = f"admin:{password}"
+            credentials = f"os_admin:{password}"
             encoded_credentials = base64.b64encode(credentials.encode()).decode()
             
             response = requests.get(
@@ -234,7 +234,7 @@ class LabValidator:
             return False, "OpenSearch credentials not available"
         
         try:
-            credentials = f"admin:{password}"
+            credentials = f"os_admin:{password}"
             encoded_credentials = base64.b64encode(credentials.encode()).decode()
             
             # Check if the index exists
@@ -300,7 +300,7 @@ class LabValidator:
             return False, "OpenSearch credentials not available"
         
         try:
-            credentials = f"admin:{password}"
+            credentials = f"os_admin:{password}"
             encoded_credentials = base64.b64encode(credentials.encode()).decode()
             
             # Test dashboard endpoint
@@ -402,7 +402,7 @@ class LabValidator:
         if outputs:
             console.print(Panel(
                 f"OpenSearch Dashboard: https://{outputs.get('opensearch_endpoint', 'N/A')}/_dashboards/\n"
-                f"Username: admin\n"
+                f"Username: os_admin\n"
                 f"Password: {outputs.get('opensearch_master_password', 'N/A')}\n"
                 f"SSH Command: {outputs.get('ssh_command', 'N/A')}",
                 title="🔐 Access Information",
