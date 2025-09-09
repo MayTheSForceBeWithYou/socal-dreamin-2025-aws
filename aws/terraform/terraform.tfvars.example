@@ -2,7 +2,7 @@
 # Copy this file to terraform.tfvars and fill in your values
 
 aws_region = "us-west-1"
-project_name = "salesforce-opensearch-lab"
+project_name = "sf-opensearch-lab"
 owner = "lab-user"
 vpc_cidr = "10.0.0.0/16"
 

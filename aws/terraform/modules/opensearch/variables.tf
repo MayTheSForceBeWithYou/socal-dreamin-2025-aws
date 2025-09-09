@@ -27,3 +27,8 @@ variable "security_groups" {
   description = "List of security group IDs for OpenSearch"
   type        = list(string)
 }
+
+variable "terraform_user_arn" {
+  description = "ARN of the terraform IAM user"
+  type        = string
+}

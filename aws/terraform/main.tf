@@ -27,6 +27,15 @@ data "aws_availability_zones" "available" {
   state = "available"
 }
 
+# IAM User for Terraform
+resource "aws_iam_user" "terraform_user" {
+  name = "terraform"
+  
+  tags = {
+    Name = "terraform-user"
+  }
+}
+
 # Random string for unique names
 resource "random_string" "random" {
   length  = 8
@@ -70,6 +79,8 @@ module "opensearch" {
   instance_type   = var.opensearch_instance_type
   instance_count  = var.opensearch_instance_count
   ebs_volume_size = var.opensearch_ebs_volume_size
+  
+  terraform_user_arn = aws_iam_user.terraform_user.arn
 }
 
 # EC2 Instance

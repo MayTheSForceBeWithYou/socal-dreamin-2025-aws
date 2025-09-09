@@ -50,7 +50,7 @@ resource "aws_opensearch_domain" "main" {
     enabled                        = true
     internal_user_database_enabled = true
     master_user_options {
-      master_user_name = "os_admin"
+      master_user_name     = "os_admin"
       master_user_password = random_password.opensearch_password.result
     }
   }
@@ -82,8 +82,25 @@ resource "aws_opensearch_domain" "main" {
   }
 }
 
-# Random password for OpenSearch os_admin user
+# Random password for OpenSearch admin user
 resource "random_password" "opensearch_password" {
   length  = 32
   special = true
+}
+
+# Public access policy for OpenSearch
+resource "aws_opensearch_domain_identity_policy" "allow_public_access" {
+  domain_name = aws_opensearch_domain.main.domain_name
+
+  access_policies = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Principal = "*",
+        Action = "es:ESHttp*",
+        Resource = "${aws_opensearch_domain.main.arn}/*"
+      }
+    ]
+  })
 }
