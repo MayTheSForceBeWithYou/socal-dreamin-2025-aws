@@ -13,23 +13,54 @@ class OpenSearchClient:
         self.config = config
         self.session = boto3.Session()
         self.credentials = self.session.get_credentials()
+        
+        # Validate OpenSearch endpoint configuration
+        self._validate_config()
         self._create_index_if_not_exists()
+    
+    def _validate_config(self):
+        """Validate OpenSearch configuration"""
+        if not self.config.opensearch_endpoint:
+            raise ValueError("OPENSEARCH_ENDPOINT environment variable is required")
+        
+        # Ensure endpoint has proper scheme
+        if not self.config.opensearch_endpoint.startswith(('http://', 'https://')):
+            self.config.opensearch_endpoint = f"https://{self.config.opensearch_endpoint}"
+        
+        # Validate AWS region
+        if not self.config.aws_region:
+            raise ValueError("AWS_REGION environment variable is required")
+        
+        logger.info(f"OpenSearch endpoint configured: {self.config.opensearch_endpoint}")
+        logger.info(f"AWS region configured: {self.config.aws_region}")
     
     def _make_authenticated_request(self, method, path, data=None):
         """Make an authenticated request to OpenSearch"""
-        url = f"{self.config.opensearch_endpoint}{path}"
-        
-        # Create AWS request
-        aws_request = AWSRequest(method=method, url=url, data=data)
-        SigV4Auth(self.credentials, 'es', self.config.aws_region).add_auth(aws_request)
-        
-        # Convert to requests format
-        headers = dict(aws_request.headers)
-        if data:
-            headers['Content-Type'] = 'application/json'
-        
-        response = requests.request(method, url, headers=headers, data=data, timeout=30)
-        return response
+        try:
+            url = f"{self.config.opensearch_endpoint}{path}"
+            
+            # Validate URL construction
+            if not url.startswith(('http://', 'https://')):
+                raise ValueError(f"Invalid URL constructed: {url}")
+            
+            # Create AWS request
+            aws_request = AWSRequest(method=method, url=url, data=data)
+            
+            # Add authentication
+            SigV4Auth(self.credentials, 'es', self.config.aws_region).add_auth(aws_request)
+            
+            # Convert to requests format
+            headers = dict(aws_request.headers)
+            if data:
+                headers['Content-Type'] = 'application/json'
+            
+            logger.debug(f"Making {method} request to {url}")
+            response = requests.request(method, url, headers=headers, data=data, timeout=30)
+            return response
+            
+        except Exception as e:
+            logger.error(f"Failed to make authenticated request to {url}: {e}")
+            raise
     
     def _create_index_if_not_exists(self):
         """Create index with mapping if it doesn't exist"""

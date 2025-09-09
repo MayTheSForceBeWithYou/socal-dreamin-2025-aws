@@ -24,10 +24,14 @@ logger = logging.getLogger(__name__)
 
 class LoginEventStreamer:
     def __init__(self):
-        self.config = Config()
-        self.sf_client = SalesforceClient(self.config)
-        self.os_client = OpenSearchClient(self.config)
-        self.last_poll_time = datetime.utcnow() - timedelta(minutes=5)
+        try:
+            self.config = Config()
+            self.sf_client = SalesforceClient(self.config)
+            self.os_client = OpenSearchClient(self.config)
+            self.last_poll_time = datetime.utcnow() - timedelta(minutes=5)
+        except Exception as e:
+            logger.error(f"Failed to initialize LoginEventStreamer: {e}")
+            raise
         
     def run(self):
         """Main processing loop"""
@@ -83,8 +87,13 @@ class LoginEventStreamer:
 
 if __name__ == "__main__":
     try:
+        logger.info("Starting Salesforce LoginEvent Streamer application...")
         streamer = LoginEventStreamer()
         streamer.run()
+    except ValueError as e:
+        logger.error(f"Configuration error: {e}")
+        logger.error("Please check your environment variables and configuration")
+        sys.exit(1)
     except Exception as e:
         logger.error(f"Fatal error: {e}", exc_info=True)
         sys.exit(1)

@@ -26,11 +26,10 @@ resource "aws_opensearch_domain" "main" {
     volume_type = "gp3"
   }
   
-  # Commented out VPC options to enable public access
-  # vpc_options {
-  #   subnet_ids         = var.subnet_ids
-  #   security_group_ids = var.security_groups
-  # }
+  vpc_options {
+    subnet_ids         = var.subnet_ids
+    security_group_ids = var.security_groups
+  }
   
   encrypt_at_rest {
     enabled = true
@@ -45,49 +44,26 @@ resource "aws_opensearch_domain" "main" {
     tls_security_policy = "Policy-Min-TLS-1-2-2019-07"
   }
   
-  # Configure for reliable dashboard access with internal user database
+  # Configure for IAM role-based authentication
   advanced_security_options {
     enabled                        = true
-    internal_user_database_enabled = true
+    internal_user_database_enabled = false
     master_user_options {
-      master_user_name     = "os_admin"
-      master_user_password = random_password.opensearch_password.result
+      master_user_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.project_name}-ec2-role"
     }
   }
   
-  # Single access policy that allows both IAM and public access
+  # Access policy for IAM role-based authentication
   access_policies = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
         Effect = "Allow"
         Principal = {
-          AWS = [
-            "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.project_name}-ec2-role",
-            "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
-          ]
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.project_name}-ec2-role"
         }
-        Action = [
-          "es:*"
-        ]
-        Resource = [
-          "arn:aws:es:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:domain/${var.project_name}-os",
-          "arn:aws:es:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:domain/${var.project_name}-os/*"
-        ]
-      },
-      {
-        Effect = "Allow"
-        Principal = "*"
-        Action = [
-          "es:ESHttpGet",
-          "es:ESHttpPost",
-          "es:ESHttpPut",
-          "es:ESHttpDelete"
-        ]
-        Resource = [
-          "arn:aws:es:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:domain/${var.project_name}-os",
-          "arn:aws:es:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:domain/${var.project_name}-os/*"
-        ]
+        Action = "es:*"
+        Resource = "arn:aws:es:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:domain/${var.project_name}-os/*"
       }
     ]
   })
@@ -97,8 +73,4 @@ resource "aws_opensearch_domain" "main" {
   }
 }
 
-# Random password for OpenSearch admin user
-resource "random_password" "opensearch_password" {
-  length  = 32
-  special = true
-}
+# Note: Random password resource removed since we're using IAM role-based authentication

@@ -2,6 +2,10 @@
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
+locals {
+  iam_username = regex("user\\/(.*)", data.aws_caller_identity.current.arn)[0]
+}
+
 # IAM Role for EC2
 resource "aws_iam_role" "ec2" {
   name = "${var.project_name}-ec2-role"
@@ -13,7 +17,8 @@ resource "aws_iam_role" "ec2" {
         Action = "sts:AssumeRole"
         Effect = "Allow"
         Principal = {
-          Service = "ec2.amazonaws.com"
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/${local.iam_username}"
+          Service ="ec2.amazonaws.com"
         }
       }
     ]

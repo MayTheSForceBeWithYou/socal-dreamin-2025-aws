@@ -20,8 +20,23 @@ class Config:
         # Salesforce Configuration
         self.salesforce_instance_url = os.getenv('SALESFORCE_INSTANCE_URL')
         
+        # Validate required configuration
+        self._validate_required_config()
+        
         # Load Salesforce credentials from Secrets Manager
         self._load_salesforce_credentials()
+    
+    def _validate_required_config(self):
+        """Validate that all required configuration is present"""
+        required_vars = {
+            'OPENSEARCH_ENDPOINT': self.opensearch_endpoint,
+            'SECRETS_MANAGER_SECRET_ARN': self.secrets_manager_secret_arn,
+            'SALESFORCE_INSTANCE_URL': self.salesforce_instance_url
+        }
+        
+        missing_vars = [var for var, value in required_vars.items() if not value]
+        if missing_vars:
+            raise ValueError(f"Missing required environment variables: {', '.join(missing_vars)}")
     
     def _load_salesforce_credentials(self):
         """Load Salesforce JWT credentials from AWS Secrets Manager"""

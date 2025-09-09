@@ -13,13 +13,7 @@ output "domain_arn" {
   value       = aws_opensearch_domain.main.arn
 }
 
-output "master_user" {
-  description = "OpenSearch master user name"
-  value       = "os_admin"
-}
-
-output "master_password" {
-  description = "OpenSearch master user password"
-  value       = random_password.opensearch_password.result
-  sensitive   = true
+output "master_user_arn" {
+  description = "OpenSearch master user ARN (IAM role)"
+  value       = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.project_name}-ec2-role"
 }

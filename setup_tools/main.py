@@ -25,6 +25,7 @@ from .commands.services.start_dashboard_proxy import start_dashboard_proxy
 from .commands.services.access_dashboards import access_dashboards
 from .commands.validation.validate_lab import validate_lab
 from .commands.validation.generate_test_data import generate_test_data
+from .commands.opensearch.post_terraform_setup import OpenSearchValidator
 
 # Initialize console
 console = Console()
@@ -97,6 +98,13 @@ def services(ctx):
 @click.pass_context
 def validation(ctx):
     """Validation operations."""
+    pass
+
+
+@cli.group()
+@click.pass_context
+def opensearch(ctx):
+    """OpenSearch operations."""
     pass
 
 
@@ -429,6 +437,27 @@ def validation_validate_lab(ctx, comprehensive, component):
 def validation_generate_test_data(ctx, count, create_template):
     """Generate test data for Salesforce login events."""
     generate_test_data.callback(count, create_template)
+
+
+# OpenSearch Commands
+@opensearch.command('validate-iam-auth')
+@click.option('--region', default='us-west-1', help='AWS region')
+@click.pass_context
+def opensearch_validate_iam_auth(ctx, region):
+    """Validate OpenSearch IAM authentication and connectivity."""
+    try:
+        validator = OpenSearchValidator(region)
+        success = validator.run_validation()
+        
+        if success:
+            console.print("[green]✅ OpenSearch IAM authentication validated successfully![/green]")
+        else:
+            console.print("[red]❌ OpenSearch IAM authentication validation failed[/red]")
+            raise click.Abort()
+            
+    except Exception as e:
+        console.print(f"[red]❌ OpenSearch validation failed: {e}[/red]")
+        raise click.Abort()
 
 
 @cli.command()
