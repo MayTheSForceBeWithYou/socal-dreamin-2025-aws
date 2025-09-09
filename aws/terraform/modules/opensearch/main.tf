@@ -55,6 +55,7 @@ resource "aws_opensearch_domain" "main" {
     }
   }
   
+  # Single access policy that allows both IAM and public access
   access_policies = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -73,6 +74,20 @@ resource "aws_opensearch_domain" "main" {
           "arn:aws:es:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:domain/${var.project_name}-os",
           "arn:aws:es:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:domain/${var.project_name}-os/*"
         ]
+      },
+      {
+        Effect = "Allow"
+        Principal = "*"
+        Action = [
+          "es:ESHttpGet",
+          "es:ESHttpPost",
+          "es:ESHttpPut",
+          "es:ESHttpDelete"
+        ]
+        Resource = [
+          "arn:aws:es:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:domain/${var.project_name}-os",
+          "arn:aws:es:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:domain/${var.project_name}-os/*"
+        ]
       }
     ]
   })
@@ -86,21 +101,4 @@ resource "aws_opensearch_domain" "main" {
 resource "random_password" "opensearch_password" {
   length  = 32
   special = true
-}
-
-# Public access policy for OpenSearch
-resource "aws_opensearch_domain_identity_policy" "allow_public_access" {
-  domain_name = aws_opensearch_domain.main.domain_name
-
-  access_policies = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Effect = "Allow",
-        Principal = "*",
-        Action = "es:ESHttp*",
-        Resource = "${aws_opensearch_domain.main.arn}/*"
-      }
-    ]
-  })
 }
