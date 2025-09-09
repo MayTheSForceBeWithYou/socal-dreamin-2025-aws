@@ -199,7 +199,7 @@ bash scripts/deploy-application.sh
 ### Method 4: AWS Console
 
 1. Go to AWS Console → OpenSearch
-2. Find domain: `salesforce-opensearch-lab-os`
+2. Find domain: `sf-opensearch-lab-os`
 3. Click "OpenSearch Dashboards URL"
 
 ## Dashboard Usage
@@ -263,7 +263,7 @@ bash scripts/deploy-application.sh
 aws ec2 describe-instances --instance-ids <instance-id>
 
 # Check OpenSearch domain
-aws es describe-elasticsearch-domain --domain-name salesforce-opensearch-lab-os
+aws es describe-elasticsearch-domain --domain-name sf-opensearch-lab-os
 
 # SSH to EC2
 ssh -i aws/certs/aws-ec2 ec2-user@<EC2_IP>

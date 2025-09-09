@@ -51,7 +51,7 @@ echo "Method 1: AWS Console (Easiest)"
 echo "------------------------------"
 echo "1. Go to AWS Console: https://console.aws.amazon.com/"
 echo "2. Navigate to OpenSearch service"
-echo "3. Find your domain: salesforce-opensearch-lab-os"
+echo "3. Find your domain: sf-opensearch-lab-os" # TODO: Make this dynamic
 echo "4. Click 'OpenSearch Dashboards URL'"
 echo "5. You'll be automatically authenticated with your AWS credentials"
 echo ""

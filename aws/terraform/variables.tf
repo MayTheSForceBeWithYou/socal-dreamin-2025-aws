@@ -7,7 +7,7 @@ variable "aws_region" {
 variable "project_name" {
   description = "Project name"
   type        = string
-  default     = "salesforce-opensearch-lab"
+  default     = "sf-opensearch-lab"
 }
 
 variable "owner" {

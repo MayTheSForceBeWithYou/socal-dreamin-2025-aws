@@ -76,8 +76,8 @@ terraform force-unlock <lock-id>
 **Solution**:
 ```bash
 # Check existing resources
-aws ec2 describe-instances --filters "Name=tag:Project,Values=salesforce-opensearch-lab"
-aws es describe-elasticsearch-domain --domain-name salesforce-opensearch-lab-os
+aws ec2 describe-instances --filters "Name=tag:Project,Values=sf-opensearch-lab"
+aws es describe-elasticsearch-domain --domain-name sf-opensearch-lab-os
 
 # Destroy and recreate if needed
 terraform destroy -auto-approve

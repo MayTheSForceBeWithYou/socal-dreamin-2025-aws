@@ -13,13 +13,13 @@ The **easiest way** to access OpenSearch Dashboards with proper authentication i
 **Alternative**: Use AWS Console for AWS IAM authentication:
 1. Go to [AWS Console](https://console.aws.amazon.com/)
 2. Navigate to **OpenSearch** service
-3. Find your domain: `salesforce-opensearch-lab-os`
+3. Find your domain: `sf-opensearch-lab-os`
 4. Click **"OpenSearch Dashboards URL"**
 
 ## 📋 Prerequisites
 
 - AWS CLI configured with valid credentials
-- SSH key file: `aws/terraform/salesforce-opensearch-lab-key.pem`
+- SSH key file: `aws/certs/aws-ec2`
 - EC2 instance running (check with `terraform output`)
 
 ## 🔧 Access Methods
@@ -48,7 +48,7 @@ The **easiest way** to access OpenSearch Dashboards with proper authentication i
 
 1. Open [AWS Console](https://console.aws.amazon.com/)
 2. Search for "OpenSearch" in the services
-3. Click on your domain: `salesforce-opensearch-lab-os`
+3. Click on your domain: `sf-opensearch-lab-os`
 4. Click the **"OpenSearch Dashboards URL"** button
 5. You'll be redirected to Dashboards with full access
 
@@ -60,7 +60,7 @@ The **easiest way** to access OpenSearch Dashboards with proper authentication i
 1. **Start SSH tunnel** (run this in a separate terminal):
    ```bash
    cd /Users/nate/dev/socal-dreamin-2025-aws
-   ssh -i aws/terraform/salesforce-opensearch-lab-key.pem -L 9200:localhost:9200 ec2-user@$(cd aws/terraform && terraform output -raw ec2_public_ip)
+   ssh -i aws/certs/aws-ec2 -L 9200:localhost:9200 ec2-user@$(cd aws/terraform && terraform output -raw ec2_public_ip)
    ```
 
 2. **Keep the SSH tunnel terminal open** (don't close it)
@@ -78,7 +78,7 @@ The **easiest way** to access OpenSearch Dashboards with proper authentication i
 
 1. **SSH into EC2**:
    ```bash
-   ssh -i aws/terraform/salesforce-opensearch-lab-key.pem ec2-user@$(cd aws/terraform && terraform output -raw ec2_public_ip)
+   ssh -i aws/certs/aws-ec2 ec2-user@$(cd aws/terraform && terraform output -raw ec2_public_ip)
    ```
 
 2. **Test basic connectivity**:
@@ -98,7 +98,7 @@ The **easiest way** to access OpenSearch Dashboards with proper authentication i
 
 Use the test script we created:
 ```bash
-ssh -i aws/terraform/salesforce-opensearch-lab-key.pem ec2-user@$(cd aws/terraform && terraform output -raw ec2_public_ip)
+ssh -i aws/certs/aws-ec2 ec2-user@$(cd aws/terraform && terraform output -raw ec2_public_ip)
 python3 /opt/salesforce-streamer/test-opensearch-iam.py
 ```
 
