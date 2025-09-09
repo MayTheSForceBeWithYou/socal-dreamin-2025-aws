@@ -1,5 +1,5 @@
 """
-Deploy Salesforce project command.
+Deploy Salesforce permission sets command.
 """
 
 from pathlib import Path
@@ -12,9 +12,9 @@ from ...core.exceptions import SalesforceError, ValidationError
 from ...utils.validators import Validators
 
 
-@register_command("salesforce:deploy-project")
-class DeployProjectCommand(BaseCommand):
-    """Deploy Salesforce project to scratch org."""
+@register_command("salesforce:deploy-permission-sets")
+class DeployPermissionSetsCommand(BaseCommand):
+    """Deploy Salesforce permission sets to scratch org."""
     
     def __init__(self, config, dry_run: bool = False, verbose: bool = False):
         super().__init__(config, dry_run, verbose)
@@ -22,7 +22,7 @@ class DeployProjectCommand(BaseCommand):
     
     def execute(self, environment: str = "demo", **kwargs) -> Dict[str, Any]:
         """
-        Deploy Salesforce project to scratch org.
+        Deploy Salesforce permission sets to scratch org.
         
         Args:
             environment: Environment name for org targeting
@@ -33,7 +33,7 @@ class DeployProjectCommand(BaseCommand):
         Raises:
             SalesforceError: If deployment fails
         """
-        self.console.print("[bold blue]Deploying Salesforce project...[/bold blue]")
+        self.console.print("[bold blue]Deploying Salesforce permission sets...[/bold blue]")
         
         try:
             # Validate inputs
@@ -48,40 +48,51 @@ class DeployProjectCommand(BaseCommand):
             if not salesforce_dir.exists():
                 raise SalesforceError(f"Salesforce directory not found: {salesforce_dir}")
             
-            # Check if force-app directory exists
-            force_app_dir = salesforce_dir / "force-app"
-            if not force_app_dir.exists():
-                raise SalesforceError(f"force-app directory not found: {force_app_dir}")
+            # Check if permission sets directory exists
+            permission_sets_dir = salesforce_dir / "force-app" / "main" / "default" / "permissionSets"
+            if not permission_sets_dir.exists():
+                raise SalesforceError(f"Permission sets directory not found: {permission_sets_dir}")
             
-            # Deploy the project
+            # Deploy permission sets
             with Progress(
                 SpinnerColumn(),
                 TextColumn("[progress.description]{task.description}"),
                 console=self.console
             ) as progress:
-                task = progress.add_task("Deploying Salesforce project...", total=None)
+                task = progress.add_task("Deploying permission sets...", total=None)
                 
                 command = [
                     "sf", "project", "deploy", "start",
-                    "--source-dir", "force-app",
+                    "--source-dir", "force-app/main/default/permissionSets",
                     "--target-org", f"socal-dreamin-2025-aws-{environment}",
-                    "--wait", "10"  # Wait up to 10 minutes for deployment
+                    "--wait", "5"  # Wait up to 5 minutes for permission sets
                 ]
                 
                 try:
                     result = self.shell.execute(command, cwd=salesforce_dir, capture_output=True)
-                    progress.update(task, description="Salesforce project deployed successfully!")
-                except Exception as cmd_error:
-                    # Display the command output for debugging
-                    self.console.print(f"[red]❌ Command failed: {' '.join(command)}[/red]")
+                    progress.update(task, description="Permission sets deployed successfully!")
                     
-                    # Try to get the actual command output from the shell executor
+                    deployment_id = self._extract_deployment_id(result.stdout)
+                    self.console.print(f"[green]✅ Permission sets deployed successfully![/green]")
+                    if deployment_id:
+                        self.console.print(f"[blue]Deployment ID: {deployment_id}[/blue]")
+                    
+                    return {
+                        'success': True,
+                        'environment': environment,
+                        'deployment_id': deployment_id,
+                        'command_output': result.stdout
+                    }
+                    
+                except Exception as cmd_error:
+                    self.console.print(f"[red]❌ Permission sets deployment failed: {' '.join(command)}[/red]")
+                    
+                    # Display error details
                     if hasattr(cmd_error, 'args') and len(cmd_error.args) > 0:
                         error_msg = str(cmd_error.args[0])
                         self.console.print(f"[red]Error details:[/red]")
                         self.console.print(f"[red]{error_msg}[/red]")
                     
-                    # Also try to get stderr/stdout if available
                     if hasattr(cmd_error, 'stderr') and cmd_error.stderr:
                         self.console.print(f"[red]Error output:[/red]")
                         self.console.print(f"[red]{cmd_error.stderr}[/red]")
@@ -97,26 +108,12 @@ class DeployProjectCommand(BaseCommand):
                         self.console.print(f"[red]Full error output:[/red]")
                         self.console.print(f"[red]{debug_error}[/red]")
                     
-                    raise SalesforceError(f"Failed to deploy Salesforce project: {cmd_error}")
-            
-            # Parse deployment result
-            deployment_id = self._extract_deployment_id(result.stdout)
-            
-            self.console.print(f"[green]✅ Salesforce project deployed successfully![/green]")
-            if deployment_id:
-                self.console.print(f"[blue]Deployment ID: {deployment_id}[/blue]")
-            
-            return {
-                'success': True,
-                'environment': environment,
-                'deployment_id': deployment_id,
-                'command_output': result.stdout
-            }
+                    raise SalesforceError(f"Failed to deploy permission sets: {cmd_error}")
             
         except Exception as e:
             if isinstance(e, SalesforceError):
                 raise
-            raise SalesforceError(f"Failed to deploy Salesforce project: {e}")
+            raise SalesforceError(f"Failed to deploy permission sets: {e}")
     
     def validate_inputs(self, environment: str, **kwargs) -> None:
         """
@@ -136,13 +133,13 @@ class DeployProjectCommand(BaseCommand):
         salesforce_dir = self.config.root_dir / "salesforce"
         self.validators.validate_directory_path(salesforce_dir, must_exist=True)
         
-        # Validate force-app directory exists
-        force_app_dir = salesforce_dir / "force-app"
-        self.validators.validate_directory_path(force_app_dir, must_exist=True)
+        # Validate permission sets directory exists
+        permission_sets_dir = salesforce_dir / "force-app" / "main" / "default" / "permissionSets"
+        self.validators.validate_directory_path(permission_sets_dir, must_exist=True)
     
     def get_description(self) -> str:
         """Get command description."""
-        return "Deploy Salesforce project to scratch org"
+        return "Deploy Salesforce permission sets to scratch org"
     
     def get_required_args(self) -> list:
         """Get list of required arguments."""

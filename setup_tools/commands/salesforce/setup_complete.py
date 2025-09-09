@@ -74,8 +74,19 @@ class SetupCompleteSalesforceCommand(BaseCommand):
             org_result = org_command.execute(org_name=org_name, duration_days=30)
             results['scratch_org'] = org_result
             
-            # Step 3: Setup Connected App
-            self.console.print("\n[bold]Step 3: Setting up Connected App...[/bold]")
+            # Step 3: Deploy permission sets
+            self.console.print("\n[bold]Step 3: Deploying permission sets...[/bold]")
+            permission_sets_command = CommandFactory.create_command(
+                'salesforce:deploy-permission-sets',
+                self.config,
+                dry_run=self.dry_run,
+                verbose=self.verbose
+            )
+            permission_sets_result = permission_sets_command.execute(environment=environment)
+            results['permission_sets'] = permission_sets_result
+            
+            # Step 4: Setup Connected App
+            self.console.print("\n[bold]Step 4: Setting up Connected App...[/bold]")
             app_command = CommandFactory.create_command(
                 'salesforce:setup-connected-app',
                 self.config,
@@ -85,9 +96,8 @@ class SetupCompleteSalesforceCommand(BaseCommand):
             app_result = app_command.execute(contact_email=contact_email, environment=environment)
             results['connected_app'] = app_result
             
-            # Step 4: Deploy Salesforce project (permission sets first, then remaining)
-            self.console.print("\n[bold]Step 4: Deploying Salesforce project...[/bold]")
-            self.console.print("[dim]This will deploy permission sets first, then the remaining project components[/dim]")
+            # Step 5: Deploy Salesforce project (entire project)
+            self.console.print("\n[bold]Step 5: Deploying Salesforce project...[/bold]")
             deploy_command = CommandFactory.create_command(
                 'salesforce:deploy-project',
                 self.config,
@@ -97,8 +107,8 @@ class SetupCompleteSalesforceCommand(BaseCommand):
             deploy_result = deploy_command.execute(environment=environment)
             results['deploy'] = deploy_result
             
-            # Step 5: Create integration user
-            self.console.print("\n[bold]Step 5: Creating integration user...[/bold]")
+            # Step 6: Create integration user
+            self.console.print("\n[bold]Step 6: Creating integration user...[/bold]")
             user_command = CommandFactory.create_command(
                 'salesforce:create-integration-user',
                 self.config,

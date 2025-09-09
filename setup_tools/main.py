@@ -269,6 +269,31 @@ def salesforce_setup_complete(ctx, contact_email, environment):
         raise click.Abort()
 
 
+@salesforce.command('deploy-permission-sets')
+@click.option('--environment', default='demo', help='Environment name')
+@click.pass_context
+def salesforce_deploy_permission_sets(ctx, environment):
+    """Deploy Salesforce permission sets to scratch org."""
+    try:
+        command = CommandFactory.create_command(
+            'salesforce:deploy-permission-sets',
+            ctx.obj['config'],
+            dry_run=ctx.obj['dry_run'],
+            verbose=ctx.obj['verbose']
+        )
+        
+        result = command.execute(environment=environment)
+        
+        if result['success']:
+            console.print("[green]✅ Salesforce permission sets deployed successfully![/green]")
+        else:
+            console.print("[red]❌ Failed to deploy Salesforce permission sets[/red]")
+            
+    except Exception as e:
+        console.print(f"[red]Error: {e}[/red]")
+        raise click.Abort()
+
+
 @salesforce.command('deploy-project')
 @click.option('--environment', default='demo', help='Environment name')
 @click.pass_context
