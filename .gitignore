@@ -38,6 +38,7 @@ env.bak/
 venv.bak/
 
 # IDE
+.claude/
 .vscode/
 .idea/
 *.swp

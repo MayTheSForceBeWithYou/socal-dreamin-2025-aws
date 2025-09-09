@@ -49,7 +49,7 @@ resource "aws_opensearch_domain" "main" {
     enabled                        = true
     internal_user_database_enabled = false
     master_user_options {
-      master_user_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.project_name}-ec2-role"
+      master_user_arn = var.ec2_role_arn
     }
   }
   
@@ -60,7 +60,7 @@ resource "aws_opensearch_domain" "main" {
       {
         Effect = "Allow"
         Principal = {
-          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${var.project_name}-ec2-role"
+          AWS = var.ec2_role_arn
         }
         Action = "es:*"
         Resource = "arn:aws:es:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:domain/${var.project_name}-os/*"

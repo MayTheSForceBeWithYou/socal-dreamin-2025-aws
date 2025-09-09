@@ -81,6 +81,9 @@ module "opensearch" {
   ebs_volume_size = var.opensearch_ebs_volume_size
   
   terraform_user_arn = aws_iam_user.terraform_user.arn
+  ec2_role_arn       = module.iam.ec2_role_arn
+  
+  depends_on = [module.iam]
 }
 
 # EC2 Instance

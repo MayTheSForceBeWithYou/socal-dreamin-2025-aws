@@ -32,3 +32,8 @@ variable "terraform_user_arn" {
   description = "ARN of the terraform IAM user"
   type        = string
 }
+
+variable "ec2_role_arn" {
+  description = "ARN of the EC2 IAM role for OpenSearch master user"
+  type        = string
+}
