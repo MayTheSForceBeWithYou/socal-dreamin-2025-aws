@@ -59,6 +59,7 @@ module "networking" {
   project_name         = var.project_name
   vpc_cidr            = var.vpc_cidr
   availability_zones  = data.aws_availability_zones.available.names
+  allowed_cidr_blocks = var.allowed_cidr_blocks
 }
 
 # IAM Roles
@@ -101,6 +102,22 @@ module "ec2" {
   salesforce_instance_url = var.salesforce_instance_url
   secrets_manager_secret_arn = aws_secretsmanager_secret.salesforce_creds.arn
   poll_interval_seconds  = var.poll_interval_seconds
+}
+
+# Bastion Host for OpenSearch Access
+module "bastion" {
+  source = "./modules/bastion"
+  
+  project_name           = var.project_name
+  vpc_id                 = module.networking.vpc_id
+  subnet_id              = module.networking.public_subnet_ids[0]  # Use public subnet
+  security_group_ids     = [module.networking.bastion_security_group_id]
+  key_pair_name          = aws_key_pair.main.key_name
+  iam_instance_profile   = module.iam.ec2_instance_profile_name
+  
+  instance_type          = var.bastion_instance_type
+  opensearch_endpoint    = module.opensearch.endpoint
+  allowed_cidr_blocks    = var.allowed_cidr_blocks
 }
 
 # Secrets Manager for Salesforce credentials

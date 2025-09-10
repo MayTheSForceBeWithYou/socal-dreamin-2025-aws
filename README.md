@@ -180,10 +180,11 @@ python -m setup_tools infrastructure deploy-complete-lab --validate
    # Access: http://localhost:8080/_dashboards/
    ```
 
-3. **SSH Tunnel**:
+3. **IP Gateway (Bastion Host)** - **NEW RECOMMENDED METHOD**:
    ```bash
-   ssh -i aws/certs/aws-ec2 -L 9200:localhost:9200 ec2-user@<EC2_IP>
-   # Access: https://localhost:9200/_dashboards/
+   # Get bastion IP
+   terraform output bastion_public_ip
+   # Access: https://BASTION_IP/_dashboards/
    ```
 
 4. **AWS Console**: Direct access via AWS web console

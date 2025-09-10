@@ -96,20 +96,40 @@ resource "aws_security_group" "opensearch" {
   name_prefix = "${var.project_name}-opensearch-"
   vpc_id      = aws_vpc.main.id
   
-  # OpenSearch HTTPS
+  # OpenSearch HTTPS from EC2
   ingress {
     from_port       = 443
     to_port         = 443
     protocol        = "tcp"
     security_groups = [aws_security_group.ec2.id]
+    description     = "HTTPS access from EC2 instance"
   }
   
-  # OpenSearch HTTP (if needed)
+  # OpenSearch HTTP from EC2 (if needed)
   ingress {
     from_port       = 80
     to_port         = 80
     protocol        = "tcp"
     security_groups = [aws_security_group.ec2.id]
+    description     = "HTTP access from EC2 instance"
+  }
+  
+  # OpenSearch HTTPS from Bastion Host
+  ingress {
+    from_port       = 443
+    to_port         = 443
+    protocol        = "tcp"
+    security_groups = [aws_security_group.bastion.id]
+    description     = "HTTPS access from bastion host"
+  }
+  
+  # OpenSearch HTTP from Bastion Host (if needed)
+  ingress {
+    from_port       = 80
+    to_port         = 80
+    protocol        = "tcp"
+    security_groups = [aws_security_group.bastion.id]
+    description     = "HTTP access from bastion host"
   }
   
   # Outbound traffic
@@ -122,5 +142,52 @@ resource "aws_security_group" "opensearch" {
   
   tags = {
     Name = "${var.project_name}-opensearch-sg"
+  }
+}
+
+# Security Group for Bastion Host
+resource "aws_security_group" "bastion" {
+  name_prefix = "${var.project_name}-bastion-"
+  vpc_id      = aws_vpc.main.id
+  description = "Security group for bastion host"
+  
+  # SSH access - restricted to allowed CIDR blocks
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = var.allowed_cidr_blocks
+    description = "SSH access from allowed IPs"
+  }
+  
+  # HTTPS access for OpenSearch proxy - restricted to allowed CIDR blocks
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = var.allowed_cidr_blocks
+    description = "HTTPS access for OpenSearch proxy"
+  }
+  
+  # HTTP access for OpenSearch proxy - restricted to allowed CIDR blocks
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = var.allowed_cidr_blocks
+    description = "HTTP access for OpenSearch proxy"
+  }
+  
+  # Outbound traffic
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "All outbound traffic"
+  }
+  
+  tags = {
+    Name = "${var.project_name}-bastion-sg"
   }
 }

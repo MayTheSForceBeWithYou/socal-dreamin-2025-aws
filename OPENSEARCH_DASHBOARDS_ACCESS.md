@@ -1,14 +1,15 @@
 # OpenSearch Dashboards Access Guide
 
-This guide explains how to access your OpenSearch Dashboards for the Salesforce Streamer project.
+This guide explains how to access your OpenSearch Dashboards for the Salesforce Streamer project using the new **IP Gateway (Bastion Host)** approach.
 
 ## 🚀 Quick Start
 
-The **easiest way** to access OpenSearch Dashboards with proper authentication is using the User Proxy:
+The **easiest way** to access OpenSearch Dashboards is through the new IP Gateway:
 
-1. Run: `./scripts/start-user-proxy.sh`
-2. Open browser: `http://localhost:8080/_dashboards/`
-3. You'll be authenticated as the OpenSearch user (os_admin/password)
+1. Deploy infrastructure with bastion host: `terraform apply`
+2. Get bastion IP: `terraform output bastion_public_ip`
+3. Open browser: `https://BASTION_IP/_dashboards/`
+4. You'll be authenticated automatically through AWS IAM
 
 **Alternative**: Use AWS Console for AWS IAM authentication:
 1. Go to [AWS Console](https://console.aws.amazon.com/)
@@ -19,27 +20,30 @@ The **easiest way** to access OpenSearch Dashboards with proper authentication i
 ## 📋 Prerequisites
 
 - AWS CLI configured with valid credentials
-- SSH key file: `aws/certs/aws-ec2`
-- EC2 instance running (check with `terraform output`)
+- Terraform deployed with bastion host
+- Your public IP configured in `allowed_cidr_blocks` (for security)
 
 ## 🔧 Access Methods
 
-### Method 1: User Proxy (Recommended for Browser Access)
+### Method 1: IP Gateway (Recommended - New Approach)
 
-**Pros:** Proper OpenSearch user authentication, works in any browser, no AWS Console needed
-**Cons:** Requires running a local proxy
+**Pros:** Direct HTTPS access, secure, no SSH tunneling needed, works from any browser
+**Cons:** Requires bastion host deployment
 
-1. **Start the user proxy**:
+1. **Deploy the infrastructure** (if not already done):
    ```bash
-   # From project root
-   ./scripts/start-user-proxy.sh
+   cd aws/terraform
+   terraform apply
    ```
 
-2. **Keep the proxy terminal open** (don't close it)
+2. **Get the bastion host IP**:
+   ```bash
+   terraform output bastion_public_ip
+   ```
 
-3. **Open browser** and go to: `http://localhost:8080/_dashboards/`
+3. **Open browser** and go to: `https://BASTION_IP/_dashboards/`
 
-4. **You're authenticated!** The proxy handles OpenSearch user authentication automatically
+4. **You're authenticated!** The bastion host acts as a secure proxy to OpenSearch
 
 ### Method 2: AWS Console (Alternative)
 
@@ -52,73 +56,75 @@ The **easiest way** to access OpenSearch Dashboards with proper authentication i
 4. Click the **"OpenSearch Dashboards URL"** button
 5. You'll be redirected to Dashboards with full access
 
-### Method 3: SSH Tunnel + Browser
+### Method 3: SSH to Bastion + Local Proxy (For Advanced Users)
 
-**Pros:** Direct access, good for development
-**Cons:** Requires SSH tunnel setup, browser authentication issues
+**Pros:** Full control, good for development
+**Cons:** Requires SSH access and local proxy setup
 
-1. **Start SSH tunnel** (run this in a separate terminal):
+1. **SSH into bastion host**:
    ```bash
-   # From project root
-   ssh -i aws/certs/aws-ec2 -L 9200:localhost:9200 ec2-user@$(cd aws/terraform && terraform output -raw ec2_public_ip)
+   ssh -i aws/certs/aws-ec2 ec2-user@$(cd aws/terraform && terraform output -raw bastion_public_ip)
    ```
 
-2. **Keep the SSH tunnel terminal open** (don't close it)
+2. **Check nginx status**:
+   ```bash
+   sudo systemctl status nginx
+   ```
 
-3. **Open browser** and go to: `https://localhost:9200/_dashboards/`
-
-4. **Handle security warning**: Click "Advanced" → "Proceed to localhost"
-
-5. **Authentication issue**: You'll see "User: anonymous is not authorized" - this is expected because browsers can't authenticate with AWS IAM directly
+3. **View logs**:
+   ```bash
+   sudo tail -f /var/log/nginx/access.log
+   ```
 
 ### Method 4: CLI Access (For Testing)
 
 **Pros:** Good for testing connectivity and API calls
 **Cons:** Command-line only, not for Dashboards UI
 
-1. **SSH into EC2**:
+1. **SSH into bastion**:
    ```bash
-   ssh -i aws/certs/aws-ec2 ec2-user@$(cd aws/terraform && terraform output -raw ec2_public_ip)
+   ssh -i aws/certs/aws-ec2 ec2-user@$(cd aws/terraform && terraform output -raw bastion_public_ip)
    ```
 
 2. **Test basic connectivity**:
    ```bash
-   curl -X GET 'https://localhost:9200/'
+   curl -X GET 'https://localhost/_dashboards/'
    ```
 
-3. **Test IAM authentication**:
+3. **Test OpenSearch API**:
    ```bash
-   python3 /opt/salesforce-streamer/test-opensearch-iam.py
+   curl -X GET 'https://localhost/'
    ```
-
-### Method 5: Programmatic Access
-
-**Pros:** Full API access, good for automation
-**Cons:** Requires Python/curl knowledge
-
-Use the test script we created:
-```bash
-ssh -i aws/certs/aws-ec2 ec2-user@$(cd aws/terraform && terraform output -raw ec2_public_ip)
-python3 /opt/salesforce-streamer/test-opensearch-iam.py
-```
 
 ## 🔍 Troubleshooting
 
+### "Connection refused" on bastion IP
+- **Cause**: Bastion host not running or nginx not started
+- **Solution**: Check bastion instance status and SSH in to restart nginx
+
+### "SSL certificate error" in browser
+- **Cause**: Self-signed certificate on bastion
+- **Solution**: Click "Advanced" → "Proceed to bastion IP" (it's safe)
+
 ### "User: anonymous is not authorized"
-- **Cause**: Browser can't authenticate with AWS IAM
-- **Solution**: Use AWS Console method instead
+- **Cause**: Browser can't authenticate with AWS IAM through proxy
+- **Solution**: Use AWS Console method instead, or configure proper authentication
 
-### "Connection refused" on localhost:9200
-- **Cause**: SSH tunnel not established
-- **Solution**: Make sure SSH tunnel is running and EC2 is accessible
-
-### "TargetNotConnected" SSM error
-- **Cause**: EC2 instance not connected to SSM
-- **Solution**: Check EC2 instance status and SSM agent
+### Bastion host not accessible
+- **Cause**: Security group not allowing your IP
+- **Solution**: Check `allowed_cidr_blocks` in terraform.tfvars and update with your public IP
 
 ### OpenSearch domain not found
 - **Cause**: Domain might be in different region
 - **Solution**: Check AWS region in terraform configuration
+
+## 🔐 Security Features
+
+- **IP Restriction**: Only your IP can access the bastion host
+- **HTTPS Encryption**: All traffic encrypted between you and bastion
+- **VPC Security**: Bastion can only access OpenSearch within the VPC
+- **IAM Authentication**: OpenSearch uses AWS IAM for authentication
+- **Self-signed Certificates**: Bastion uses self-signed certs for local proxy
 
 ## 📊 What You Can Do in Dashboards
 
@@ -130,32 +136,26 @@ Once you have access, you can:
 4. **Search Data**: Use the Discover tab to search and filter events
 5. **Manage Index Patterns**: Configure how data is displayed
 
-## 🔐 Security Notes
-
-- OpenSearch is configured with IAM authentication
-- Only authorized AWS users/roles can access the domain
-- The EC2 instance has the necessary permissions to write data
-- SSH access is secured with key-based authentication
-
-## 📝 Next Steps
-
-1. **Access Dashboards** using Method 1 (AWS Console)
-2. **Explore the data** in the Discover tab
-3. **Create visualizations** for login patterns
-4. **Set up monitoring** dashboards
-5. **Configure alerts** for unusual activity
-
 ## 🆘 Getting Help
 
 If you encounter issues:
 
-1. Check EC2 instance status: `aws ec2 describe-instances`
+1. Check bastion instance status: `aws ec2 describe-instances --filters "Name=tag:Type,Values=opensearch-gateway"`
 2. Verify OpenSearch domain status in AWS Console
-3. Check application logs: `ssh -i key.pem ec2-user@ip 'sudo journalctl -u salesforce-streamer -f'`
-4. Test connectivity from EC2: `curl -X GET 'https://localhost:9200/'`
+3. Check bastion logs: `ssh -i aws/certs/aws-ec2 ec2-user@BASTION_IP 'sudo journalctl -u nginx -f'`
+4. Test connectivity from bastion: `curl -X GET 'https://localhost/'`
+
+## 🔄 Migration from SSH Tunneling
+
+If you were previously using SSH tunneling:
+
+1. **Old method**: `ssh -L 9200:localhost:9200 ec2-user@EC2_IP`
+2. **New method**: Direct access via `https://BASTION_IP/_dashboards/`
+
+The new IP gateway approach is more secure and easier to use!
 
 ---
 
-**Recommendation**: Start with Method 1 (User Proxy) for the easiest browser access with proper OpenSearch user authentication.
+**Recommendation**: Use Method 1 (IP Gateway) for the easiest and most secure access to OpenSearch Dashboards.
 
 

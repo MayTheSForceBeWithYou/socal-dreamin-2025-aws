@@ -22,3 +22,8 @@ output "opensearch_security_group_id" {
   description = "OpenSearch security group ID"
   value       = aws_security_group.opensearch.id
 }
+
+output "bastion_security_group_id" {
+  description = "Security group ID for bastion host"
+  value       = aws_security_group.bastion.id
+}

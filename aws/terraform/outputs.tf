@@ -37,3 +37,29 @@ output "opensearch_master_user_arn" {
   description = "OpenSearch master user ARN (IAM role)"
   value       = module.opensearch.master_user_arn
 }
+
+# Bastion Host Outputs
+output "bastion_instance_id" {
+  description = "Bastion instance ID"
+  value       = module.bastion.bastion_instance_id
+}
+
+output "bastion_public_ip" {
+  description = "Bastion public IP"
+  value       = module.bastion.bastion_public_ip
+}
+
+output "bastion_public_dns" {
+  description = "Bastion public DNS"
+  value       = module.bastion.bastion_public_dns
+}
+
+output "opensearch_proxy_url" {
+  description = "URL to access OpenSearch through the bastion proxy"
+  value       = module.bastion.opensearch_proxy_url
+}
+
+output "bastion_ssh_command" {
+  description = "SSH command to connect to bastion host"
+  value       = "ssh -i aws/certs/aws-ec2 ec2-user@${module.bastion.bastion_public_ip}"
+}

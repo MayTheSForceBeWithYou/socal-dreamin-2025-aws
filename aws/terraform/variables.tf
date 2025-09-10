@@ -82,3 +82,16 @@ variable "salesforce_private_key" {
   type        = string
   sensitive   = true
 }
+
+# Bastion Host
+variable "bastion_instance_type" {
+  description = "EC2 instance type for bastion host"
+  type        = string
+  default     = "t3.micro"
+}
+
+variable "allowed_cidr_blocks" {
+  description = "List of CIDR blocks allowed to access the bastion host (e.g., your public IP)"
+  type        = list(string)
+  default     = ["0.0.0.0/0"]  # Default to all IPs - should be restricted for security
+}

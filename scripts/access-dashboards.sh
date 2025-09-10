@@ -1,23 +1,33 @@
 #!/bin/bash
-# Simple OpenSearch Dashboards Access Script
+# OpenSearch Dashboards Access via IP Gateway (Bastion Host)
 
 set -e
 
 PROJECT_ROOT=$(cd $(dirname $0)/.. && pwd)
 echo "PROJECT_ROOT: $PROJECT_ROOT"
 
-echo "🔍 OpenSearch Dashboards Access"
-echo "==============================="
+echo "🔍 OpenSearch Dashboards Access via IP Gateway"
+echo "=============================================="
 echo ""
 
 # Get infrastructure outputs
 cd $PROJECT_ROOT/aws/terraform
-EC2_IP="54.241.255.154"
+
+# Check if terraform has been applied
+if ! terraform output bastion_public_ip >/dev/null 2>&1; then
+    echo "❌ Bastion host not found in terraform outputs"
+    echo "Please run: terraform apply"
+    exit 1
+fi
+
+BASTION_IP=$(terraform output -raw bastion_public_ip)
 OPENSEARCH_ENDPOINT=$(terraform output -raw opensearch_endpoint)
+OPENSEARCH_PROXY_URL=$(terraform output -raw opensearch_proxy_url)
 
 echo "Infrastructure Details:"
-echo "  EC2 Instance IP: $EC2_IP"
+echo "  Bastion Host IP: $BASTION_IP"
 echo "  OpenSearch Endpoint: $OPENSEARCH_ENDPOINT"
+echo "  Proxy URL: $OPENSEARCH_PROXY_URL"
 echo ""
 
 # Check if AWS CLI is configured
@@ -32,75 +42,73 @@ AWS_IDENTITY=$(aws sts get-caller-identity --query 'Arn' --output text)
 echo "✅ AWS CLI configured: $AWS_IDENTITY"
 echo ""
 
-# Check if SSH key exists
-SSH_KEY="$PROJECT_ROOT/aws/certs/aws-ec2"
-if [ ! -f "$SSH_KEY" ]; then
-    echo "❌ SSH key not found: $SSH_KEY"
-    echo "Please ensure the SSH key exists"
+# Check bastion host connectivity
+echo "Checking bastion host connectivity..."
+if ! curl -s --connect-timeout 10 "https://$BASTION_IP" >/dev/null 2>&1; then
+    echo "❌ Cannot reach bastion host at $BASTION_IP"
+    echo "Please check:"
+    echo "  1. Bastion host is running"
+    echo "  2. Your IP is in allowed_cidr_blocks"
+    echo "  3. Security groups allow HTTPS access"
     exit 1
 fi
 
-echo "✅ SSH key found: $SSH_KEY"
+echo "✅ Bastion host is reachable"
 echo ""
 
 echo "🚀 OpenSearch Dashboards Access Methods"
 echo "======================================="
 echo ""
 
-echo "Method 1: AWS Console (Easiest)"
-echo "------------------------------"
+echo "Method 1: IP Gateway (Recommended - New Approach)"
+echo "--------------------------------------------------"
+echo "Direct HTTPS access through bastion host:"
+echo "  Open your browser and go to: $OPENSEARCH_PROXY_URL"
+echo "  ✅ Secure, encrypted, no SSH tunneling needed"
+echo ""
+
+echo "Method 2: AWS Console (Alternative)"
+echo "-----------------------------------"
 echo "1. Go to AWS Console: https://console.aws.amazon.com/"
 echo "2. Navigate to OpenSearch service"
-echo "3. Find your domain: sf-opensearch-lab-os" # TODO: Make this dynamic
+echo "3. Find your domain: sf-opensearch-lab-os"
 echo "4. Click 'OpenSearch Dashboards URL'"
 echo "5. You'll be automatically authenticated with your AWS credentials"
 echo ""
 
-echo "Method 2: User Proxy (Recommended for Browser Access)"
-echo "----------------------------------------------------"
-echo "1. Run the user proxy script:"
-echo "   python3 $PROJECT_ROOT/scripts/opensearch-user-proxy.py 8080"
+echo "Method 3: SSH to Bastion (For Advanced Users)"
+echo "---------------------------------------------"
+echo "1. SSH into bastion host:"
+echo "   ssh -i aws/certs/aws-ec2 ec2-user@$BASTION_IP"
 echo ""
-echo "2. Keep that terminal open (don't close it)"
+echo "2. Check nginx status:"
+echo "   sudo systemctl status nginx"
 echo ""
-echo "3. In your browser, go to: http://localhost:8080/_dashboards/"
-echo ""
-echo "4. You'll be authenticated as the OpenSearch user (os_admin/password)"
-echo ""
-
-echo "Method 3: SSH Tunnel + Browser"
-echo "------------------------------"
-echo "1. Run this command in a separate terminal:"
-echo "   ssh -i $SSH_KEY -L 9200:localhost:9200 ec2-user@$EC2_IP"
-echo ""
-echo "2. Keep that terminal open (don't close it)"
-echo ""
-echo "3. In your browser, go to: https://localhost:9200/_dashboards/"
-echo ""
-echo "4. You'll see a security warning - click 'Advanced' and 'Proceed to localhost'"
-echo ""
-echo "5. You'll get an authentication error - this is expected"
-echo "   The browser can't authenticate with AWS IAM directly"
+echo "3. View logs:"
+echo "   sudo tail -f /var/log/nginx/access.log"
 echo ""
 
-echo "Method 3: CLI Access (For Testing)"
+echo "Method 4: CLI Access (For Testing)"
 echo "----------------------------------"
-echo "Test OpenSearch connectivity from EC2:"
-echo "  ssh -i $SSH_KEY ec2-user@$EC2_IP"
-echo "  curl -X GET 'https://localhost:9200/'"
+echo "Test OpenSearch connectivity from bastion:"
+echo "  ssh -i aws/certs/aws-ec2 ec2-user@$BASTION_IP"
+echo "  curl -X GET 'https://localhost/'"
 echo ""
 
-echo "Method 4: Programmatic Access"
-echo "------------------------------"
-echo "Use the test script we created:"
-echo "  ssh -i $SSH_KEY ec2-user@$EC2_IP"
-echo "  python3 /opt/salesforce-streamer/test-opensearch-iam.py"
+echo "📋 Troubleshooting:"
+echo "  - SSL Certificate Error: Click 'Advanced' → 'Proceed to $BASTION_IP'"
+echo "  - Connection Refused: Check bastion host status"
+echo "  - Access Denied: Verify your IP is in allowed_cidr_blocks"
+echo ""
+
+echo "🔐 Security Notes:"
+echo "  - Only your IP can access the bastion host"
+echo "  - All traffic is encrypted via HTTPS"
+echo "  - OpenSearch uses AWS IAM authentication"
 echo ""
 
 echo "📝 Recommendation:"
-echo "For browser access with OpenSearch user authentication, use Method 2 (User Proxy)."
-echo "For AWS Console access, use Method 1."
-echo "For development/testing, use Method 3 or 4."
+echo "Use Method 1 (IP Gateway) for the easiest and most secure access to OpenSearch Dashboards."
 echo ""
 
 echo "Press any key to continue..."
