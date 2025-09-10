@@ -49,7 +49,7 @@ class DeployPermissionSetsCommand(BaseCommand):
                 raise SalesforceError(f"Salesforce directory not found: {salesforce_dir}")
             
             # Check if permission sets directory exists
-            permission_sets_dir = salesforce_dir / "force-app" / "main" / "default" / "permissionSets"
+            permission_sets_dir = salesforce_dir / "force-app" / "main" / "default" / "permissionsets"
             if not permission_sets_dir.exists():
                 raise SalesforceError(f"Permission sets directory not found: {permission_sets_dir}")
             
@@ -63,7 +63,7 @@ class DeployPermissionSetsCommand(BaseCommand):
                 
                 command = [
                     "sf", "project", "deploy", "start",
-                    "--source-dir", "force-app/main/default/permissionSets",
+                    "--source-dir", "force-app/main/default/permissionsets",
                     "--target-org", f"socal-dreamin-2025-aws-{environment}",
                     "--wait", "5"  # Wait up to 5 minutes for permission sets
                 ]
@@ -134,7 +134,7 @@ class DeployPermissionSetsCommand(BaseCommand):
         self.validators.validate_directory_path(salesforce_dir, must_exist=True)
         
         # Validate permission sets directory exists
-        permission_sets_dir = salesforce_dir / "force-app" / "main" / "default" / "permissionSets"
+        permission_sets_dir = salesforce_dir / "force-app" / "main" / "default" / "permissionsets"
         self.validators.validate_directory_path(permission_sets_dir, must_exist=True)
     
     def get_description(self) -> str:

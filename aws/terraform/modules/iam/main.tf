@@ -17,7 +17,7 @@ resource "aws_iam_role" "ec2" {
         Action = "sts:AssumeRole"
         Effect = "Allow"
         Principal = {
-          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/${local.iam_username}"
+          AWS = "${data.aws_caller_identity.current.arn}"
           Service ="ec2.amazonaws.com"
         }
       }
@@ -50,7 +50,8 @@ resource "aws_iam_policy" "opensearch_access" {
         ]
         Resource = [
           "arn:aws:es:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:domain/${var.project_name}-os",
-          "arn:aws:es:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:domain/${var.project_name}-os/*"
+          "arn:aws:es:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:domain/${var.project_name}-os/*",
+          "${data.aws_caller_identity.current.arn}"
         ]
       }
     ]
