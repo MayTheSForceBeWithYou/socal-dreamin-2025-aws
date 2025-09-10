@@ -6,14 +6,17 @@ and forwards requests to the OpenSearch domain.
 """
 
 import boto3
-import requests
-import json
-import threading
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from urllib.parse import urlparse, parse_qs
 from botocore.auth import SigV4Auth
 from botocore.awsrequest import AWSRequest
+from http.server import HTTPServer, BaseHTTPRequestHandler
+import json
 import logging
+import os
+from pathlib import Path
+import requests
+import subprocess
+import threading
+from urllib.parse import urlparse, parse_qs
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -131,7 +134,13 @@ def create_proxy_handler(opensearch_endpoint):
 def start_proxy_server(port=8080, opensearch_endpoint=None):
     """Start the proxy server"""
     if not opensearch_endpoint:
-        opensearch_endpoint = "vpc-salesforce-opensearch-lab-os-c35zwrfbfcuzrmqgcinxframcu.us-west-1.es.amazonaws.com"
+        # Retrieve from Terraform outputs
+        # Change to terraform directory
+        terraform_dir = Path(__file__).parent.parent / "aws" / "terraform"
+        os.chdir(terraform_dir)
+        terraform_outputs = subprocess.run(["terraform", "output", "-json"], capture_output=True, text=True)
+        terraform_outputs = json.loads(terraform_outputs.stdout)
+        opensearch_endpoint = terraform_outputs["opensearch_endpoint"]["value"]
     
     handler_class = create_proxy_handler(opensearch_endpoint)
     

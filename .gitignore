@@ -86,3 +86,6 @@ secrets/
 .env.local
 .env.production
 sfdc-auth-secrets.json
+
+# Auto-generated files
+scripts/access-opensearch-dashboards-iam.sh
