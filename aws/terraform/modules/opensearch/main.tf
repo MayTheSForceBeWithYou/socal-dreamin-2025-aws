@@ -60,17 +60,15 @@ resource "aws_opensearch_domain" "main" {
       {
         Effect = "Allow"
         Principal = {
-          AWS = var.ec2_role_arn
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
         }
         Action = "es:*"
         Resource = "arn:aws:es:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:domain/${var.project_name}-os/*"
       }
     ]
   })
-  
+
   tags = {
     Name = "${var.project_name}-opensearch"
   }
 }
-
-# Note: Random password resource removed since we're using IAM role-based authentication

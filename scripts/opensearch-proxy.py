@@ -3,6 +3,9 @@
 OpenSearch Dashboards Authentication Proxy
 This proxy server handles AWS IAM authentication for OpenSearch Dashboards
 and forwards requests to the OpenSearch domain.
+
+This version is designed to run on EC2 with IAM role authentication
+and accept SSH tunnel connections from local development machines.
 """
 
 import boto3
@@ -16,10 +19,18 @@ from pathlib import Path
 import requests
 import subprocess
 import threading
+import sys
 from urllib.parse import urlparse, parse_qs
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+# Configure logging with more detail for remote debugging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('/tmp/opensearch-proxy.log'),
+        logging.StreamHandler()
+    ]
+)
 logger = logging.getLogger(__name__)
 
 class OpenSearchProxyHandler(BaseHTTPRequestHandler):
@@ -85,6 +96,9 @@ class OpenSearchProxyHandler(BaseHTTPRequestHandler):
             # Prepare headers
             headers = dict(aws_request.headers)
             
+            # Add required header for OpenSearch Dashboards
+            headers['osd-xsrf'] = 'true'
+            
             # Copy important headers from original request
             for header in ['Content-Type', 'Accept', 'User-Agent']:
                 if header in self.headers:
@@ -131,23 +145,58 @@ def create_proxy_handler(opensearch_endpoint):
         return OpenSearchProxyHandler(*args, opensearch_endpoint=opensearch_endpoint, **kwargs)
     return handler
 
-def start_proxy_server(port=8080, opensearch_endpoint=None):
+def get_opensearch_endpoint():
+    """Get OpenSearch endpoint from various sources"""
+    # Try environment variable first
+    endpoint = os.environ.get('OPENSEARCH_ENDPOINT')
+    if endpoint:
+        logger.info(f"Using OpenSearch endpoint from environment: {endpoint}")
+        return endpoint
+    
+    # Try config file
+    config_file = '/opt/opensearch-proxy/config.json'
+    if os.path.exists(config_file):
+        try:
+            with open(config_file, 'r') as f:
+                config = json.load(f)
+                endpoint = config.get('opensearch_endpoint')
+                if endpoint:
+                    logger.info(f"Using OpenSearch endpoint from config file: {endpoint}")
+                    return endpoint
+        except Exception as e:
+            logger.warning(f"Failed to read config file {config_file}: {e}")
+    
+    # Try Terraform outputs as fallback (for local development)
+    try:
+        terraform_dir = Path(__file__).parent.parent / "aws" / "terraform"
+        if terraform_dir.exists():
+            original_cwd = os.getcwd()
+            os.chdir(terraform_dir)
+            terraform_outputs = subprocess.run(["terraform", "output", "-json"], capture_output=True, text=True)
+            os.chdir(original_cwd)
+            
+            if terraform_outputs.returncode == 0:
+                terraform_outputs = json.loads(terraform_outputs.stdout)
+                endpoint = terraform_outputs["opensearch_endpoint"]["value"]
+                logger.info(f"Using OpenSearch endpoint from Terraform: {endpoint}")
+                return endpoint
+    except Exception as e:
+        logger.warning(f"Failed to get endpoint from Terraform: {e}")
+    
+    raise ValueError("No OpenSearch endpoint found. Set OPENSEARCH_ENDPOINT environment variable, create /opt/opensearch-proxy/config.json, or run from Terraform directory")
+
+def start_proxy_server(port=9200, opensearch_endpoint=None, bind_address='0.0.0.0'):
     """Start the proxy server"""
     if not opensearch_endpoint:
-        # Retrieve from Terraform outputs
-        # Change to terraform directory
-        terraform_dir = Path(__file__).parent.parent / "aws" / "terraform"
-        os.chdir(terraform_dir)
-        terraform_outputs = subprocess.run(["terraform", "output", "-json"], capture_output=True, text=True)
-        terraform_outputs = json.loads(terraform_outputs.stdout)
-        opensearch_endpoint = terraform_outputs["opensearch_endpoint"]["value"]
+        opensearch_endpoint = get_opensearch_endpoint()
     
     handler_class = create_proxy_handler(opensearch_endpoint)
     
-    server = HTTPServer(('localhost', port), handler_class)
-    logger.info(f"Starting OpenSearch proxy server on http://localhost:{port}")
+    server = HTTPServer((bind_address, port), handler_class)
+    logger.info(f"Starting OpenSearch proxy server on http://{bind_address}:{port}")
     logger.info(f"Proxying requests to: https://{opensearch_endpoint}")
-    logger.info(f"Access Dashboards at: http://localhost:{port}/_dashboards/")
+    logger.info(f"Access Dashboards at: http://{bind_address}:{port}/_dashboards/")
+    logger.info("For SSH tunnel access: ssh -L 8080:localhost:9200 ec2-user@<ec2-ip>")
     
     try:
         server.serve_forever()
@@ -157,11 +206,25 @@ def start_proxy_server(port=8080, opensearch_endpoint=None):
 
 if __name__ == "__main__":
     import sys
+    import argparse
     
-    port = 8080
-    if len(sys.argv) > 1:
-        port = int(sys.argv[1])
+    parser = argparse.ArgumentParser(description='OpenSearch Proxy Server')
+    parser.add_argument('--port', '-p', type=int, default=9200, help='Port to bind to (default: 9200)')
+    parser.add_argument('--bind', '-b', default='0.0.0.0', help='Address to bind to (default: 0.0.0.0)')
+    parser.add_argument('--endpoint', '-e', help='OpenSearch endpoint override')
+    parser.add_argument('--local', action='store_true', help='Run in local mode (bind to localhost only)')
     
-    start_proxy_server(port)
+    args = parser.parse_args()
+    
+    # Override bind address for local mode
+    bind_address = 'localhost' if args.local else args.bind
+    
+    logger.info(f"Starting proxy with arguments: port={args.port}, bind={bind_address}, endpoint={args.endpoint}")
+    
+    try:
+        start_proxy_server(port=args.port, opensearch_endpoint=args.endpoint, bind_address=bind_address)
+    except Exception as e:
+        logger.error(f"Failed to start proxy server: {e}")
+        sys.exit(1)
 
 

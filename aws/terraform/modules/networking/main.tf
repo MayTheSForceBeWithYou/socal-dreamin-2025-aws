@@ -110,7 +110,8 @@ resource "aws_security_group" "opensearch" {
     from_port       = 80
     to_port         = 80
     protocol        = "tcp"
-    security_groups = [aws_security_group.ec2.id]
+    cidr_blocks = [var.vpc_cidr]  # Allow from entire VPC
+    # security_groups = [aws_security_group.ec2.id]
     description     = "HTTP access from EC2 instance"
   }
   
@@ -119,8 +120,19 @@ resource "aws_security_group" "opensearch" {
     from_port       = 443
     to_port         = 443
     protocol        = "tcp"
-    security_groups = [aws_security_group.bastion.id]
+    cidr_blocks = [var.vpc_cidr]  # Allow from entire VPC
+    # security_groups = [aws_security_group.bastion.id]
     description     = "HTTPS access from bastion host"
+  }
+  
+  # OpenSearch port 9200 HTTPS
+  ingress {
+    from_port       = 9200
+    to_port         = 9200
+    protocol        = "tcp"
+    cidr_blocks = [var.vpc_cidr]  # Allow from entire VPC
+    # security_groups = [aws_security_group.bastion.id]
+    description     = "HTTPS access"
   }
   
   # OpenSearch HTTP from Bastion Host (if needed)
