@@ -39,3 +39,8 @@ variable "allowed_cidr_blocks" {
   type        = list(string)
   default     = ["0.0.0.0/0"]  # Default to all IPs - should be restricted in production
 }
+
+variable "security_group_id" {
+  description = "Security group ID for bastion host"
+  type        = string
+}

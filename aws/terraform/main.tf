@@ -111,7 +111,7 @@ module "bastion" {
   project_name           = var.project_name
   vpc_id                 = module.networking.vpc_id
   subnet_id              = module.networking.public_subnet_ids[0]  # Use public subnet
-  security_group_ids     = [module.networking.bastion_security_group_id]
+  security_group_id      = module.networking.bastion_security_group_id
   key_pair_name          = aws_key_pair.main.key_name
   iam_instance_profile   = module.iam.ec2_instance_profile_name
   

@@ -16,53 +16,6 @@ data "aws_ami" "amazon_linux" {
   }
 }
 
-# Security Group for Bastion Host
-resource "aws_security_group" "bastion" {
-  name_prefix = "${var.project_name}-bastion-"
-  vpc_id      = var.vpc_id
-  description = "Security group for bastion host"
-  
-  # SSH access - restricted to your IP only
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = var.allowed_cidr_blocks
-    description = "SSH access from allowed IPs"
-  }
-  
-  # HTTPS access for OpenSearch proxy - restricted to your IP only
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = var.allowed_cidr_blocks
-    description = "HTTPS access for OpenSearch proxy"
-  }
-  
-  # HTTP access for OpenSearch proxy - restricted to your IP only
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = var.allowed_cidr_blocks
-    description = "HTTP access for OpenSearch proxy"
-  }
-  
-  # Outbound traffic
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-    description = "All outbound traffic"
-  }
-  
-  tags = {
-    Name = "${var.project_name}-bastion-sg"
-  }
-}
-
 # User data script for bastion initialization
 locals {
   user_data = templatefile("${path.module}/user-data.sh", {
@@ -77,7 +30,7 @@ resource "aws_instance" "bastion" {
   instance_type          = var.instance_type
   key_name              = var.key_pair_name
   subnet_id             = var.subnet_id
-  vpc_security_group_ids = [aws_security_group.bastion.id]
+  vpc_security_group_ids = [var.security_group_id]
   iam_instance_profile   = var.iam_instance_profile
   
   user_data = base64encode(local.user_data)
