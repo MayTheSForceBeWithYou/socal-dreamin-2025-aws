@@ -47,10 +47,28 @@ echo "📥 Installing requirements..."
 pip install -r requirements.txt
 echo "✅ Requirements installed"
 
+# Check Salesforce CLI
+if ! command -v sf &> /dev/null; then
+    echo "⚠️  Warning: Salesforce CLI not found. Please install and configure it:"
+    echo "   Download from: https://developer.salesforce.com/tools/salesforcecli"
+    echo "   or run npm install -g @salesforce/cli"
+    echo "   Then run: sf login"
+else
+    echo "✅ Salesforce CLI found"
+    # Check if there is a default devhub org
+    if ! sf org list --json | jq '.result | (.nonScratchOrgs[], .sandboxes[], .other[]) | select(.isDefaultDevHubUsername == true)'; then
+        echo "⚠️  Warning: No default devhub org found. Please ensure you have a Developer Edition or Trailhead Playground org with Dev Hub enabled."
+        echo "   Then run: sf org login web --alias <devhub-alias> --set-default-dev-hub"
+    else
+        echo "✅ Default devhub org found"
+    fi
+fi
+
 # Check AWS CLI
 if ! command -v aws &> /dev/null; then
     echo "⚠️  Warning: AWS CLI not found. Please install and configure it:"
     echo "   https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html"
+    echo "   or install it with a package manager (e.g. brew install awscli)"
     echo "   Then run: aws configure"
 else
     echo "✅ AWS CLI found"
@@ -60,6 +78,7 @@ fi
 if ! command -v terraform &> /dev/null; then
     echo "⚠️  Warning: Terraform not found. Please install it:"
     echo "   https://developer.hashicorp.com/terraform/downloads"
+    echo "   or install it with a package manager (e.g. brew install terraform)"
 else
     echo "✅ Terraform found"
 fi

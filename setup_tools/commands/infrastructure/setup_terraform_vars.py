@@ -7,6 +7,7 @@ Creates terraform.tfvars file from template with user input
 import os
 import sys
 import re
+import subprocess
 from pathlib import Path
 from typing import Optional
 import click
@@ -74,7 +75,7 @@ class TerraformVarsSetup:
             # Project name
             project_name = Prompt.ask(
                 "Project Name", 
-                default=f"salesforce-opensearch-lab-{environment}",
+                default=f"sf-opensearch-lab-{environment}",
                 show_default=True
             )
             
@@ -150,11 +151,20 @@ class TerraformVarsSetup:
             private_key_replacement = f'salesforce_private_key = <<EOF\n{salesforce_private_key}\nEOF'
             tfvars_content = re.sub(private_key_pattern, private_key_replacement, tfvars_content, flags=re.DOTALL)
             
+            # Get and replace public IP address
+            public_ip = self._get_public_ip()
+            if public_ip:
+                tfvars_content = tfvars_content.replace("YOUR_PUBLIC_IP/32", f"{public_ip}/32")
+                console.print(f"[green]✅ Detected public IP: {public_ip}[/green]")
+            else:
+                console.print("[yellow]⚠️  Could not detect public IP. You may need to update allowed_cidr_blocks manually.[/yellow]")
+            
             # Write tfvars file
             with open(self.tfvars_file, 'w') as f:
                 f.write(tfvars_content)
             
             console.print(f"[green]✅ Created terraform.tfvars: {self.tfvars_file}[/green]")
+            # TODO: Automate the next steps
             
             # Display next steps
             console.print(Panel(
@@ -163,7 +173,7 @@ class TerraformVarsSetup:
                 "2. Edit aws/sfdc-auth-secrets.json with your Salesforce credentials\n"
                 "3. Run: `python -m setup_tools.main infrastructure deploy-complete-lab --environment demo --validate`\n"
                 "4. The deployment will create all AWS resources\n"
-                "5. Note: Salesforce private key has been automatically populated in terraform.tfvars",
+                "5. Note: Salesforce private key and your public IP have been automatically populated in terraform.tfvars",
                 title="📋 Next Steps",
                 border_style="green"
             ))
@@ -247,6 +257,49 @@ class TerraformVarsSetup:
         except Exception as e:
             console.print(f"[yellow]⚠️  Failed to read Salesforce private key: {e}[/yellow]")
             return None
+    
+    def _get_public_ip(self) -> Optional[str]:
+        """Get the user's public IP address using curl."""
+        try:
+            console.print("🌐 Detecting your public IP address...")
+            
+            # Try multiple IP detection services for reliability
+            ip_services = [
+                "https://ipinfo.io/ip",
+                "https://api.ipify.org",
+                "https://icanhazip.com",
+                "https://ifconfig.me/ip"
+            ]
+            
+            for service in ip_services:
+                try:
+                    result = subprocess.run([
+                        "curl", "-s", "--connect-timeout", "5", service
+                    ], capture_output=True, text=True, timeout=10)
+                    
+                    if result.returncode == 0 and result.stdout.strip():
+                        ip = result.stdout.strip()
+                        # Basic IP validation
+                        if self._is_valid_ip(ip):
+                            return ip
+                except (subprocess.TimeoutExpired, subprocess.CalledProcessError):
+                    continue
+            
+            console.print("[yellow]⚠️  Could not detect public IP from any service[/yellow]")
+            return None
+            
+        except Exception as e:
+            console.print(f"[yellow]⚠️  Failed to detect public IP: {e}[/yellow]")
+            return None
+    
+    def _is_valid_ip(self, ip: str) -> bool:
+        """Basic IP address validation."""
+        import socket
+        try:
+            socket.inet_aton(ip)
+            return True
+        except socket.error:
+            return False
 
 
 @click.command()
