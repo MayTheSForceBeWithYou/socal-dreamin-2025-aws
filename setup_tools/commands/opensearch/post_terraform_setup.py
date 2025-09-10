@@ -11,9 +11,13 @@ import requests
 import json
 import sys
 import subprocess
+from pathlib import Path
 from botocore.auth import SigV4Auth
 from botocore.awsrequest import AWSRequest
 from typing import Optional, Dict, Any
+
+# Add the project root to Python path
+project_root = Path(__file__).parent.parent.parent.parent
 
 
 class OpenSearchValidator:
@@ -27,7 +31,7 @@ class OpenSearchValidator:
         try:
             result = subprocess.run(
                 ["terraform", "output", "-raw", output_name],
-                cwd="/Users/nate/dev/socal-dreamin-2025-aws/aws/terraform",
+                cwd=str(project_root / "aws" / "terraform"),
                 capture_output=True,
                 text=True,
                 check=True

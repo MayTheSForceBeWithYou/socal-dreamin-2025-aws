@@ -5,7 +5,7 @@ data "aws_region" "current" {}
 # OpenSearch Domain
 resource "aws_opensearch_domain" "main" {
   domain_name    = "${var.project_name}-os"
-  engine_version = "OpenSearch_2.11"
+  engine_version = "OpenSearch_2.13"
   
   cluster_config {
     instance_type            = var.instance_type
@@ -46,7 +46,7 @@ resource "aws_opensearch_domain" "main" {
   
   # Configure for IAM role-based authentication
   advanced_security_options {
-    enabled                        = true
+    enabled                        = false
     internal_user_database_enabled = false
     master_user_options {
       master_user_arn = var.ec2_role_arn

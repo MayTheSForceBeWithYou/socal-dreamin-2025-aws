@@ -21,7 +21,6 @@ from .commands.salesforce.setup_connected_app import SetupConnectedAppCommand
 from .commands.aws.generate_certificate import GenerateAWSCertificateCommand
 from .commands.infrastructure.deploy_complete_lab import deploy_complete_lab
 from .commands.infrastructure.setup_terraform_vars import setup_terraform_vars
-from .commands.services.start_dashboard_proxy import start_dashboard_proxy
 from .commands.services.access_dashboards import access_dashboards
 from .commands.validation.validate_lab import validate_lab
 from .commands.validation.generate_test_data import generate_test_data
@@ -400,17 +399,6 @@ def infrastructure_setup_terraform_vars(ctx, environment, config):
 
 
 # Services Commands
-@services.command('start-dashboard-proxy')
-@click.option('--port', default=8080, help='Port for the proxy server')
-@click.option('--endpoint', help='OpenSearch endpoint (auto-detected if not provided)')
-@click.option('--username', default='os_admin', help='OpenSearch username')
-@click.option('--password', help='OpenSearch password (auto-detected if not provided)')
-@click.pass_context
-def services_start_dashboard_proxy(ctx, port, endpoint, username, password):
-    """Start OpenSearch Dashboard proxy server."""
-    start_dashboard_proxy.callback(port, endpoint, username, password)
-
-
 @services.command('access-dashboards')
 @click.option('--open-browser', is_flag=True, help='Open browser automatically')
 @click.option('--create-guide', is_flag=True, help='Create access guide script')

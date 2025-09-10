@@ -31,7 +31,7 @@ The **easiest way** to access OpenSearch Dashboards with proper authentication i
 
 1. **Start the user proxy**:
    ```bash
-   cd /Users/nate/dev/socal-dreamin-2025-aws
+   # From project root
    ./scripts/start-user-proxy.sh
    ```
 
@@ -59,7 +59,7 @@ The **easiest way** to access OpenSearch Dashboards with proper authentication i
 
 1. **Start SSH tunnel** (run this in a separate terminal):
    ```bash
-   cd /Users/nate/dev/socal-dreamin-2025-aws
+   # From project root
    ssh -i aws/certs/aws-ec2 -L 9200:localhost:9200 ec2-user@$(cd aws/terraform && terraform output -raw ec2_public_ip)
    ```
 
