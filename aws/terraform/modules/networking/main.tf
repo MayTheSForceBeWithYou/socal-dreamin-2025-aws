@@ -148,14 +148,14 @@ resource "aws_security_group" "opensearch" {
   }
   
   # OpenSearch HTTP from EC2 (if needed)
-  ingress {
-    from_port       = 80
-    to_port         = 80
-    protocol        = "tcp"
-    cidr_blocks = [var.vpc_cidr]  # Allow from entire VPC
-    # security_groups = [aws_security_group.ec2.id]
-    description     = "HTTP access from EC2 instance"
-  }
+  # ingress {
+  #   from_port       = 80
+  #   to_port         = 80
+  #   protocol        = "tcp"
+  #   cidr_blocks = [var.vpc_cidr]  # Allow from entire VPC
+  #   # security_groups = [aws_security_group.ec2.id]
+  #   description     = "HTTP access from EC2 instance"
+  # }
   
   # OpenSearch HTTPS from Bastion Host
   ingress {

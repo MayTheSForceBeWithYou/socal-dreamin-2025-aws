@@ -134,7 +134,7 @@ class SetupCompleteSalesforceCommand(BaseCommand):
                     f"🌐 Instance URL: {org_result.get('org_info', {}).get('instanceUrl', 'N/A')}\n"
                     f"🔑 Consumer Key: {app_result.get('consumer_key', 'N/A')}\n"
                     f"👤 Integration User: {user_result.get('user_info', {}).get('username', 'N/A')}\n\n"
-                    f"➡️ Next step: python -m setup_tools infrastructure setup-terraform-vars --environment demo",
+                    f"➡️  Next step: python -m setup_tools infrastructure setup-terraform-vars --environment demo",
                     title="Setup Complete",
                     border_style="green"
                 ))
