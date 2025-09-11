@@ -65,6 +65,48 @@ resource "aws_route_table_association" "public" {
   route_table_id = aws_route_table.public.id
 }
 
+# Elastic IP for NAT Gateway
+resource "aws_eip" "nat" {
+  domain = "vpc"
+  depends_on = [aws_internet_gateway.main]
+  
+  tags = {
+    Name = "${var.project_name}-nat-eip"
+  }
+}
+
+# NAT Gateway in first public subnet
+resource "aws_nat_gateway" "main" {
+  allocation_id = aws_eip.nat.id
+  subnet_id     = aws_subnet.public[0].id
+  depends_on    = [aws_internet_gateway.main]
+  
+  tags = {
+    Name = "${var.project_name}-nat-gateway"
+  }
+}
+
+# Route Table for Private Subnets
+resource "aws_route_table" "private" {
+  vpc_id = aws_vpc.main.id
+  
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.main.id
+  }
+  
+  tags = {
+    Name = "${var.project_name}-private-rt"
+  }
+}
+
+# Route Table Association for Private Subnets
+resource "aws_route_table_association" "private" {
+  count          = length(var.availability_zones)
+  subnet_id      = aws_subnet.private[count.index].id
+  route_table_id = aws_route_table.private.id
+}
+
 # Security Group for EC2
 resource "aws_security_group" "ec2" {
   name_prefix = "${var.project_name}-ec2-"
@@ -131,8 +173,25 @@ resource "aws_security_group" "opensearch" {
     to_port         = 9200
     protocol        = "tcp"
     cidr_blocks = [var.vpc_cidr]  # Allow from entire VPC
-    # security_groups = [aws_security_group.bastion.id]
-    description     = "HTTPS access"
+    description     = "OpenSearch API HTTPS access"
+  }
+  
+  # OpenSearch Dashboard port 5601 (Kibana)
+  ingress {
+    from_port       = 5601
+    to_port         = 5601
+    protocol        = "tcp"
+    cidr_blocks = [var.vpc_cidr]  # Allow from entire VPC
+    description     = "OpenSearch Dashboard access"
+  }
+  
+  # All traffic from VPC for maximum compatibility (LAB USE ONLY)
+  ingress {
+    from_port       = 0
+    to_port         = 65535
+    protocol        = "tcp"
+    cidr_blocks = [var.vpc_cidr]
+    description     = "All TCP traffic from VPC (LAB ONLY)"
   }
   
   # OpenSearch HTTP from Bastion Host (if needed)
@@ -140,7 +199,7 @@ resource "aws_security_group" "opensearch" {
     from_port       = 80
     to_port         = 80
     protocol        = "tcp"
-    security_groups = [aws_security_group.bastion.id]
+    cidr_blocks     = [var.vpc_cidr]  # Use VPC CIDR instead of circular reference
     description     = "HTTP access from bastion host"
   }
   

@@ -448,6 +448,140 @@ def opensearch_validate_iam_auth(ctx, region):
         raise click.Abort()
 
 
+@opensearch.command('diagnose-networking')
+@click.option('--domain-name', help='OpenSearch domain name (auto-detected if not provided)')
+@click.option('--region', default='us-east-1', help='AWS region')
+@click.pass_context
+def opensearch_diagnose_networking(ctx, domain_name, region):
+    """Diagnose OpenSearch networking configuration and identify VPC access issues."""
+    try:
+        command = CommandFactory.create_command(
+            'diagnose-opensearch-networking',
+            ctx.obj['config'],
+            dry_run=ctx.obj['dry_run'],
+            verbose=ctx.obj['verbose']
+        )
+        
+        result = command.execute(domain_name=domain_name, region=region)
+        
+        if result:
+            console.print("[green]✅ Networking diagnostics completed![/green]")
+        else:
+            console.print("[red]❌ Networking diagnostics failed[/red]")
+            
+    except Exception as e:
+        console.print(f"[red]❌ Diagnostic failed: {e}[/red]")
+        raise click.Abort()
+
+
+@opensearch.command('test-connectivity')
+@click.option('--domain-name', help='OpenSearch domain name (auto-detected if not provided)')
+@click.option('--from-ec2', is_flag=True, help='Test from EC2 instance instead of local environment')
+@click.option('--instance-id', help='Specific EC2 instance ID to test from')
+@click.option('--region', default='us-east-1', help='AWS region')
+@click.option('--timeout', default=10, help='Connection timeout in seconds')
+@click.pass_context
+def opensearch_test_connectivity(ctx, domain_name, from_ec2, instance_id, region, timeout):
+    """Test connectivity to OpenSearch from EC2 instances or current environment."""
+    try:
+        command = CommandFactory.create_command(
+            'test-opensearch-connectivity',
+            ctx.obj['config'],
+            dry_run=ctx.obj['dry_run'],
+            verbose=ctx.obj['verbose']
+        )
+        
+        result = command.execute(
+            domain_name=domain_name,
+            from_ec2=from_ec2,
+            instance_id=instance_id,
+            region=region,
+            timeout=timeout
+        )
+        
+        if result and result.get('summary', {}).get('passed_tests', 0) > 0:
+            console.print("[green]✅ Connectivity tests completed![/green]")
+        else:
+            console.print("[red]❌ Connectivity tests failed[/red]")
+            
+    except Exception as e:
+        console.print(f"[red]❌ Connectivity test failed: {e}[/red]")
+        raise click.Abort()
+
+
+@opensearch.command('analyze-security-groups')
+@click.option('--service', default='opensearch', help='Service to analyze (opensearch, ec2, bastion)')
+@click.option('--create-permissive', is_flag=True, help='Create maximally permissive security group rules')
+@click.option('--vpc-id', help='VPC ID to create security groups in')
+@click.option('--region', default='us-east-1', help='AWS region')
+@click.option('--dry-run-sg', is_flag=True, help='Show what would be created without making changes')
+@click.pass_context
+def opensearch_analyze_security_groups(ctx, service, create_permissive, vpc_id, region, dry_run_sg):
+    """Analyze and optionally create permissive security group configurations for OpenSearch."""
+    try:
+        command = CommandFactory.create_command(
+            'analyze-security-groups',
+            ctx.obj['config'],
+            dry_run=ctx.obj['dry_run'],
+            verbose=ctx.obj['verbose']
+        )
+        
+        result = command.execute(
+            service=service,
+            create_permissive=create_permissive,
+            vpc_id=vpc_id,
+            region=region,
+            dry_run=dry_run_sg
+        )
+        
+        if result:
+            console.print("[green]✅ Security group analysis completed![/green]")
+        else:
+            console.print("[red]❌ Security group analysis failed[/red]")
+            
+    except Exception as e:
+        console.print(f"[red]❌ Security group analysis failed: {e}[/red]")
+        raise click.Abort()
+
+
+@opensearch.command('fix-networking')
+@click.option('--mode', default='permissive', type=click.Choice(['permissive', 'public', 'hybrid']),
+              help='Fix mode: permissive, public, hybrid')
+@click.option('--domain-name', help='OpenSearch domain name (auto-detected if not provided)')
+@click.option('--ip-restrict', help='IP addresses to allow for public access (comma-separated)')
+@click.option('--region', default='us-east-1', help='AWS region')
+@click.option('--dry-run-fix', is_flag=True, help='Show what would be changed without making changes')
+@click.option('--force', is_flag=True, help='Apply changes without confirmation prompts')
+@click.pass_context
+def opensearch_fix_networking(ctx, mode, domain_name, ip_restrict, region, dry_run_fix, force):
+    """Automatically fix OpenSearch networking issues using multiple strategies."""
+    try:
+        command = CommandFactory.create_command(
+            'fix-opensearch-networking',
+            ctx.obj['config'],
+            dry_run=ctx.obj['dry_run'],
+            verbose=ctx.obj['verbose']
+        )
+        
+        result = command.execute(
+            mode=mode,
+            domain_name=domain_name,
+            ip_restrict=ip_restrict,
+            region=region,
+            dry_run=dry_run_fix,
+            force=force
+        )
+        
+        if result and result.get('success'):
+            console.print("[green]✅ Networking fixes applied successfully![/green]")
+        else:
+            console.print("[red]❌ Networking fixes failed or incomplete[/red]")
+            
+    except Exception as e:
+        console.print(f"[red]❌ Fix operation failed: {e}[/red]")
+        raise click.Abort()
+
+
 @cli.command()
 @click.option('--environment', default='default', help='Environment to run')
 @click.pass_context
