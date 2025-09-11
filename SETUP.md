@@ -8,16 +8,62 @@ Before starting, ensure you have:
 
 - **AWS CLI** configured with appropriate permissions
 - **Terraform** installed (>= 1.0)
-- **Python 3.8+** with pip
-- **SSH keypair** for EC2 access
-- **Salesforce** scratch org with Connected App configured
+- **Python 3.9+** with pip
+- **Salesforce** DevHub org
 
 ## Quick Start
 
-### 1. Deploy Complete Lab
+### 0. Run Project Setup script
+
+If you're on Mac or Linux:
+```bash
+# Check for requirements and prepare for project scripts
+sh ./setup.sh
+```
+
+If you're on Windows and don't like WSL or Git Bash:
+```pwsh
+# Check for requirements and prepare for project scripts
+.\setup.ps1
+```
+
+
+This command will:
+- 🐍 Check for Python
+- 🪬 Create a Python virtual environment
+- ☁️ Check for Salesforce CLI
+- 🟧 Check for AWS CLI
+- 🏗️ Check for Terraform
+
+
+### 1. Deploy Complete Salesforce Infrastructure
 
 ```bash
-# Deploy everything with one command
+python -m setup_tools salesforce setup-complete --contact-email your-email@example.com --environment demo
+```
+
+This command will:
+- Generate a digital certificate/key pair for your Connected App
+- Modify the scratch org Integration User definition file
+- Modify the Connected App
+- Deploy Permission Sets
+- Deploy the entire Salesforce project
+- Retrieve the Connected App's consumer key (Client ID)
+
+
+### 2. Populate Terraform Variables
+
+```bash
+python -m setup_tools infrastructure setup-terraform-vars --environment demo
+```
+
+This command will:
+- Populate your terraform.tfvars file with specifics for your project
+
+### 3. Deploy Complete AWS Infrastructure
+
+```bash
+# Deploy AWS Infrastructure utilizing Terraform
 python -m setup_tools infrastructure deploy-complete-lab --environment demo --validate
 ```
 
@@ -28,28 +74,18 @@ This command will:
 - 📊 Set up dashboard access
 - ✅ Validate complete deployment
 
-### 2. Access OpenSearch Dashboards
-
-```bash
-# Get dashboard access information
-python -m setup_tools services access-dashboards --create-guide
-
-# Or start proxy server for local access
-python -m setup_tools services start-dashboard-proxy
-```
-
-### 3. Generate Test Data
-
-```bash
-# Generate sample login events for demonstration
-python -m setup_tools validation generate-test-data --count 200 --create-template
-```
-
 ### 4. Validate Everything
 
 ```bash
 # Run comprehensive validation
 python -m setup_tools validation validate-lab --comprehensive
+```
+
+### TODO. Generate Test Data (future)
+
+```bash
+# Generate sample login events for demonstration
+python -m setup_tools validation generate-test-data --count 200 --create-template
 ```
 
 ## Detailed Setup Instructions

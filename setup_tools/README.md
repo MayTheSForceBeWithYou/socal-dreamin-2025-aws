@@ -18,7 +18,7 @@ A modular Python framework for managing Salesforce and AWS operations in the SoC
 
 ### Prerequisites
 
-- Python 3.8 or higher
+- Python 3.9 or higher
 - Salesforce CLI (sf)
 - OpenSSL (for certificate generation)
 - SSH keygen (for AWS key generation)

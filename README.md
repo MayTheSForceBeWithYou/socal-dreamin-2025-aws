@@ -1,5 +1,8 @@
 # Salesforce → AWS → OpenSearch Security Lab
 
+## Slide Deck
+[Monitoring Salesforce Login Activity with AWS OpenSearch](https://docs.google.com/presentation/d/13MB0Ccnju9ggQjRvT6KCcUf2w4n66apy)
+
 This repository contains workshop materials for **SoCal Dreamin'** on
 building a free-tier, real-time monitoring pipeline for Salesforce login
 activity using AWS and OpenSearch.

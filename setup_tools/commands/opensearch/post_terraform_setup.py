@@ -62,34 +62,10 @@ class OpenSearchValidator:
         """Test OpenSearch connectivity with IAM authentication"""
         print(f"🔍 Testing OpenSearch connectivity to: {endpoint}")
         
-        # First, test basic network connectivity
+        # Skip direct network connectivity test for VPC-only domains
+        # Instead, try to connect via AWS APIs and fall back to EC2-based validation
         try:
-            import socket
-            from urllib.parse import urlparse
-            
-            parsed_url = urlparse(endpoint)
-            hostname = parsed_url.hostname
-            port = parsed_url.port or 443
-            
-            print(f"   Testing network connectivity to {hostname}:{port}...")
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(10)
-            result = sock.connect_ex((hostname, port))
-            sock.close()
-            
-            if result != 0:
-                print(f"❌ Network connectivity test failed: Cannot reach {hostname}:{port}")
-                print(f"   This suggests the OpenSearch domain is not accessible from your current network.")
-                print(f"   The domain may be in a private subnet or have restrictive security groups.")
-                return False
-            else:
-                print(f"✅ Network connectivity test passed")
-                
-        except Exception as e:
-            print(f"⚠️  Network connectivity test failed: {e}")
-        
-        try:
-            # Test cluster health
+            # Test cluster health directly with IAM authentication
             response = self.make_authenticated_request(endpoint, "/_cluster/health")
             
             if response.status_code == 200:
@@ -106,10 +82,10 @@ class OpenSearchValidator:
                 return False
                 
         except Exception as e:
-            print(f"❌ Connection test failed: {e}")
-            if "timeout" in str(e).lower():
-                print(f"   This suggests the OpenSearch domain is not accessible from your current network.")
-                print(f"   The domain may be in a private subnet or have restrictive security groups.")
+            print(f"❌ Direct connection test failed: {e}")
+            if "timeout" in str(e).lower() or "connection" in str(e).lower():
+                print(f"   OpenSearch domain appears to be in a VPC-only configuration.")
+                print(f"   This is normal for secure deployments. Validation will continue via EC2 instance.")
             return False
     
     def test_index_operations(self, endpoint: str, index_name: str = "test-index") -> bool:

@@ -4,20 +4,21 @@ Test Data Generator for Salesforce Login Events
 Generates sample data for demonstration purposes
 """
 
-import os
-import sys
-import json
-import time
-import random
-from datetime import datetime, timedelta
-from pathlib import Path
-from typing import List, Dict
-import click
-import requests
 import base64
+import click
+from datetime import datetime, timedelta
+import json
+import os
+from pathlib import Path
+import random
+import requests
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TimeElapsedColumn
 from rich.panel import Panel
+import sys
+import subprocess
+import time
+from typing import List, Dict
 
 # Add the project root to Python path
 project_root = Path(__file__).parent.parent.parent.parent
@@ -110,7 +111,7 @@ class TestDataGenerator:
         
         # Generate events
         events = []
-        base_time = datetime.now() - timedelta(days=7)  # Last 7 days
+        base_time = datetime.now() - timedelta(days=30)  # Last 7 days
         
         for i in range(count):
             # Random timestamp within last 7 days
